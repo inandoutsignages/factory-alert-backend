@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Factory Alert — Super Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #08080c;
+    --surface: #101018;
+    --surface2: #181824;
+    --surface3: #1f1f2e;
+    --border: #2a2a3d;
+    --accent: #ff3b3b;
+    --accent-dim: rgba(255,59,59,0.12);
+    --accent-glow: rgba(255,59,59,0.25);
+    --orange: #ff6b35;
+    --text: #eeeef5;
+    --muted: #7a7a95;
+    --success: #22c55e;
+    --radius: 12px;
+    --font: 'DM Sans', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; line-height: 1.5; }
+
+  /* LOGIN */
+  #login-screen {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(255,59,59,0.15), transparent),
+                radial-gradient(ellipse 50% 40% at 100% 100%, rgba(255,107,53,0.08), transparent),
+                var(--bg);
+    padding: 24px;
+  }
+  .login-wrap { width: 100%; max-width: 440px; }
+  .login-brand { text-align: center; margin-bottom: 32px; }
+  .login-brand .icon {
+    width: 56px; height: 56px; margin: 0 auto 16px;
+    background: linear-gradient(135deg, var(--accent), var(--orange));
+    border-radius: 14px; display: flex; align-items: center; justify-content: center;
+    font-size: 28px; box-shadow: 0 8px 32px var(--accent-glow);
+  }
+  .login-brand h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+  .login-brand p { color: var(--muted); font-size: 14px; margin-top: 6px; }
+  .login-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 36px;
+  }
+  .login-card h2 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .login-card .sub { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
+
+  /* FORM */
+  .field { margin-bottom: 18px; }
+  .field label {
+    display: block; font-size: 12px; font-weight: 600; color: var(--muted);
+    margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.6px;
+  }
+  .field input, .field select, .field textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 16px; color: var(--text);
+    font-size: 15px; font-family: var(--font); outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim);
+  }
+  .field textarea { resize: vertical; min-height: 80px; }
+  .field-hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .upload-zone {
+    border: 2px dashed var(--border); border-radius: 12px; padding: 22px;
+    text-align: center; background: var(--surface2); cursor: pointer; transition: border-color 0.2s;
+  }
+  .upload-zone:hover { border-color: var(--accent); }
+  .upload-zone input[type="file"] { display: none; }
+  .upload-preview { margin-top: 10px; font-size: 13px; color: var(--accent); font-weight: 600; }
+  .upload-current {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 12px; font-size: 13px;
+  }
+  .upload-current a { color: var(--accent); text-decoration: none; font-weight: 600; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 12px 22px; border-radius: var(--radius); font-size: 14px; font-weight: 600;
+    cursor: pointer; border: none; font-family: var(--font); transition: all 0.15s;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--orange)); color: white;
+    box-shadow: 0 4px 20px var(--accent-glow);
+  }
+  .btn-primary:hover { box-shadow: 0 6px 28px var(--accent-glow); }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid transparent; }
+  .btn-ghost:hover { color: var(--text); background: var(--surface2); }
+  .btn-danger { background: rgba(255,59,59,0.1); color: var(--accent); border: 1px solid rgba(255,59,59,0.25); }
+  .btn-block { width: 100%; }
+  .btn-sm { padding: 8px 14px; font-size: 13px; }
+
+  .alert { padding: 12px 16px; border-radius: var(--radius); font-size: 14px; margin-bottom: 16px; display: none; }
+  .alert.error { display: block; background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(255,59,59,0.3); }
+  .alert.success { display: block; background: rgba(34,197,94,0.1); color: var(--success); border: 1px solid rgba(34,197,94,0.3); }
+
+  /* APP SHELL */
+  #app { display: none; }
+  .shell { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 260px; background: var(--surface); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 50;
+  }
+  .sidebar-brand {
+    padding: 24px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .sidebar-brand .icon {
+    width: 36px; height: 36px; background: linear-gradient(135deg, var(--accent), var(--orange));
+    border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 18px;
+  }
+  .sidebar-brand h1 { font-size: 15px; font-weight: 700; }
+  .sidebar-brand span { font-size: 11px; color: var(--accent); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .nav { padding: 16px 12px; flex: 1; }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+    border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 500;
+    color: var(--muted); margin-bottom: 4px; transition: all 0.15s;
+  }
+  .nav-item:hover { color: var(--text); background: var(--surface2); }
+  .nav-item.active { color: var(--text); background: var(--accent-dim); }
+  .nav-item.active .nav-icon { background: var(--accent); color: white; }
+  .nav-icon {
+    width: 32px; height: 32px; border-radius: 8px; background: var(--surface2);
+    display: flex; align-items: center; justify-content: center; font-size: 15px;
+  }
+
+  .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
+  .workflow-hint {
+    background: var(--surface2); border-radius: 10px; padding: 14px;
+    font-size: 12px; color: var(--muted); line-height: 1.6;
+  }
+  .workflow-hint strong { color: var(--text); display: block; margin-bottom: 6px; font-size: 13px; }
+
+  .main { flex: 1; margin-left: 260px; min-height: 100vh; }
+  .topbar {
+    height: 64px; border-bottom: 1px solid var(--border); background: rgba(8,8,12,0.8);
+    backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: space-between;
+    padding: 0 32px; position: sticky; top: 0; z-index: 40;
+  }
+  .topbar h2 { font-size: 18px; font-weight: 700; }
+  .content { padding: 32px; max-width: 1200px; }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* STATS */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+  .stat {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 24px; position: relative; overflow: hidden;
+  }
+  .stat::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--orange)); opacity: 0.6;
+  }
+  .stat .num { font-size: 36px; font-weight: 800; letter-spacing: -1px; }
+  .stat .label { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .stat.workers .num { color: #22c55e; }
+
+  .worker-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(34,197,94,0.12); color: #22c55e;
+    font-size: 13px; font-weight: 700; padding: 8px 12px;
+    border-radius: 10px; border: 1px solid rgba(34,197,94,0.25);
+    margin-bottom: 12px;
+  }
+  .worker-badge.zero { background: var(--surface2); color: var(--muted); border-color: var(--border); }
+
+  .companies-table-wrap {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden; margin-bottom: 24px;
+  }
+  .companies-table { width: 100%; border-collapse: collapse; }
+  .companies-table th {
+    font-size: 11px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    padding: 14px 18px; text-align: left; border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .companies-table td {
+    padding: 14px 18px; font-size: 14px; border-bottom: 1px solid rgba(42,42,58,0.5);
+    vertical-align: middle;
+  }
+  .companies-table tr:last-child td { border-bottom: none; }
+  .companies-table tr:hover td { background: rgba(255,255,255,0.02); cursor: pointer; }
+  .workers-num { font-size: 22px; font-weight: 800; color: #22c55e; }
+  .workers-num.zero { color: var(--muted); font-size: 16px; font-weight: 600; }
+
+  /* BUILDING CARDS */
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .section-header h3 { font-size: 17px; font-weight: 700; }
+  .section-header p { color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+  .buildings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+  .building-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 24px; cursor: pointer; transition: all 0.2s;
+  }
+  .building-card:hover { border-color: rgba(255,59,59,0.4); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+  .building-card .top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+  .building-card .name { font-size: 17px; font-weight: 700; }
+  .building-card .building { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .status-pill {
+    font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .status-pill.active { background: rgba(34,197,94,0.12); color: var(--success); }
+  .status-pill.inactive { background: var(--surface2); color: var(--muted); }
+
+  .code-chip {
+    font-family: var(--mono); font-size: 14px; font-weight: 700; letter-spacing: 1px;
+    background: var(--accent-dim); color: var(--accent); padding: 10px 14px;
+    border-radius: 10px; border: 1px dashed rgba(255,59,59,0.35);
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
+  }
+  .code-chip button { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 16px; }
+
+  .meta-row { display: flex; gap: 16px; font-size: 13px; color: var(--muted); }
+  .meta-row span { display: flex; align-items: center; gap: 6px; }
+
+  /* ONBOARD FORM */
+  .onboard-layout { display: grid; grid-template-columns: 1fr 340px; gap: 24px; align-items: start; }
+  .form-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px; }
+  .form-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .form-card .desc { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+  .form-divider { height: 1px; background: var(--border); margin: 28px 0; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .steps-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 24px; position: sticky; top: 88px;
+  }
+  .steps-card h4 { font-size: 14px; font-weight: 700; margin-bottom: 20px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .step { display: flex; gap: 14px; margin-bottom: 20px; }
+  .step-num {
+    width: 28px; height: 28px; border-radius: 50%; background: var(--surface2);
+    border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: var(--muted); flex-shrink: 0;
+  }
+  .step.done .step-num { background: var(--accent); border-color: var(--accent); color: white; }
+  .step-text strong { display: block; font-size: 14px; margin-bottom: 2px; }
+  .step-text span { font-size: 12px; color: var(--muted); }
+
+  .empty {
+    text-align: center; padding: 64px 24px; background: var(--surface);
+    border: 1px dashed var(--border); border-radius: 16px;
+  }
+  .empty .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.6; }
+  .empty h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .empty p { color: var(--muted); font-size: 14px; margin-bottom: 24px; max-width: 360px; margin-left: auto; margin-right: auto; }
+
+  /* MODALS */
+  .overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+    z-index: 200; align-items: center; justify-content: center; padding: 24px;
+    backdrop-filter: blur(4px);
+  }
+  .overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+    width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; padding: 36px;
+  }
+  .modal.lg { max-width: 640px; }
+  .modal h3 { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+  .modal .sub { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+
+  .handoff-box {
+    background: var(--surface2); border-radius: 14px; padding: 20px; margin: 20px 0;
+    border: 1px solid var(--border);
+  }
+  .handoff-box .big-code {
+    font-family: var(--mono); font-size: 32px; font-weight: 800; color: var(--accent);
+    letter-spacing: 3px; text-align: center; padding: 16px 0;
+  }
+  .handoff-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .handoff-item:last-child { border-bottom: none; }
+  .handoff-item .k { color: var(--muted); }
+  .handoff-item .v { font-weight: 600; text-align: right; max-width: 60%; word-break: break-all; }
+
+  .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
+
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .detail-item { background: var(--surface2); border-radius: 10px; padding: 14px; }
+  .detail-item .k { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .detail-item .v { font-size: 14px; font-weight: 600; }
+
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; background: var(--surface3);
+    border: 1px solid var(--border); padding: 14px 20px; border-radius: 12px;
+    font-size: 14px; font-weight: 500; z-index: 300; opacity: 0; transform: translateY(10px);
+    transition: all 0.3s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; }
+    .stats { grid-template-columns: 1fr; }
+    .onboard-layout { grid-template-columns: 1fr; }
+    .two-col, .detail-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-wrap">
+    <div class="login-brand">
+      <div class="icon">🚨</div>
+      <h1>Factory Alert</h1>
+      <p>B2B Fire Safety Platform — Super Admin</p>
+    </div>
+    <div class="login-card">
+      <h2>Welcome back</h2>
+      <p class="sub">Your company's control panel. Onboard client factories and generate building codes.</p>
+      <div id="login-error" class="alert"></div>
+      <div class="field">
+        <label>Master Password</label>
+        <input type="password" id="master-password" placeholder="Enter your master password" onkeydown="if(event.key==='Enter')login()">
+      </div>
+      <button class="btn btn-primary btn-block" onclick="login()">Sign In</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="icon">🚨</div>
+        <div>
+          <h1>Factory Alert</h1>
+          <span>Super Admin</span>
+        </div>
+      </div>
+      <nav class="nav">
+        <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')">
+          <div class="nav-icon">📊</div> Dashboard
+        </div>
+        <div class="nav-item" data-page="onboard" onclick="showPage('onboard')">
+          <div class="nav-icon">➕</div> Onboard Client
+        </div>
+        <div class="nav-item" data-page="buildings" onclick="showPage('buildings')">
+          <div class="nav-icon">🏭</div> All Buildings
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="workflow-hint">
+          <strong>Your workflow</strong>
+          Visit client → Create building → Share code + admin password → Client manages workers
+        </div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <h2 id="page-title">Dashboard</h2>
+        <button class="btn btn-ghost btn-sm" onclick="logout()">Sign Out</button>
+      </header>
+
+      <div class="content">
+        <!-- DASHBOARD -->
+        <div id="page-dashboard" class="page active">
+          <div class="stats">
+            <div class="stat"><div class="num" id="stat-total">0</div><div class="label">Client Buildings</div></div>
+            <div class="stat workers"><div class="num" id="stat-workers">0</div><div class="label">Total Workers</div></div>
+            <div class="stat"><div class="num" id="stat-active">0</div><div class="label">Active Contracts</div></div>
+            <div class="stat"><div class="num" id="stat-zones">0</div><div class="label">Zones Configured</div></div>
+          </div>
+
+          <div class="section-header">
+            <div>
+              <h3>Workers per Company</h3>
+              <p>How many workers have enrolled in each client building (count only — names are managed by company admin)</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="fetchCompanies()">↻ Refresh</button>
+          </div>
+          <div id="workers-table-wrap" class="companies-table-wrap"></div>
+
+          <div class="section-header" style="margin-top:32px">
+            <div>
+              <h3>Recent Client Buildings</h3>
+              <p>Quick overview of your onboarded factories</p>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="showPage('onboard')">+ Onboard Client</button>
+          </div>
+          <div id="dashboard-buildings" class="buildings-grid"></div>
+        </div>
+
+        <!-- ONBOARD -->
+        <div id="page-onboard" class="page">
+          <div class="onboard-layout">
+            <div class="form-card">
+              <h3>Onboard New Client Factory</h3>
+              <p class="desc">Fill in the client's building details. A unique building code will be generated for worker onboarding in the mobile app.</p>
+              <div id="create-error" class="alert"></div>
+
+              <div class="field">
+                <label>Client Company Name *</label>
+                <input type="text" id="c-name" placeholder="e.g. Toyota Motors India">
+              </div>
+              <div class="two-col">
+                <div class="field">
+                  <label>Factory / Building Name</label>
+                  <input type="text" id="c-building" placeholder="e.g. Pune Main Plant">
+                </div>
+                <div class="field">
+                  <label>Total Floors</label>
+                  <input type="number" id="c-floors" value="1" min="1">
+                </div>
+              </div>
+              <div class="field">
+                <label>Building Address</label>
+                <input type="text" id="c-address" placeholder="Full factory address">
+              </div>
+
+              <div class="form-divider"></div>
+              <h3>Evacuation Plan</h3>
+              <p class="desc">Upload the building evacuation plan here. Only super admin can add, edit, or delete. Company admin and workers can view only.</p>
+              <div class="field">
+                <label>Assembly Point</label>
+                <input type="text" id="c-assembly" placeholder="e.g. North parking lot, Gate 2">
+              </div>
+              <div class="field">
+                <label>Evacuation Plan Details</label>
+                <textarea id="c-evac-plan" rows="6" placeholder="Exit routes, floor-wise instructions, emergency contacts, muster point rules...&#10;&#10;Or upload a file below instead."></textarea>
+                <div class="field-hint">Type instructions here, or upload a PDF / Word / image file below.</div>
+              </div>
+              <div class="field">
+                <label>Upload Plan File</label>
+                <div class="upload-zone" onclick="document.getElementById('c-evac-file').click()">
+                  <div style="font-size:28px;margin-bottom:8px">📄</div>
+                  <div>Click to upload PDF, Word, TXT, or image</div>
+                  <div class="field-hint">Max 10MB</div>
+                  <input type="file" id="c-evac-file" accept=".pdf,.txt,.doc,.docx,.png,.jpg,.jpeg,.webp" onchange="onEvacFileSelect(this,'c-evac-file-label')">
+                  <div id="c-evac-file-label" class="upload-preview"></div>
+                </div>
+              </div>
+
+              <div class="form-divider"></div>
+              <h3>Company Admin Access</h3>
+              <p class="desc">Set a password for the client's admin. They'll use this with the building code to manage workers.</p>
+
+              <div class="two-col">
+                <div class="field">
+                  <label>Admin Password *</label>
+                  <input type="password" id="c-password" placeholder="Password for client admin">
+                </div>
+                <div class="field">
+                  <label>Confirm Password *</label>
+                  <input type="password" id="c-password2" placeholder="Repeat password">
+                </div>
+              </div>
+
+              <button class="btn btn-primary" onclick="createCompany()" style="margin-top:8px">
+                Generate Building Code →
+              </button>
+            </div>
+
+            <div class="steps-card">
+              <h4>What happens next</h4>
+              <div class="step done"><div class="step-num">1</div><div class="step-text"><strong>You visit the client</strong><span>Meet the factory head on-site</span></div></div>
+              <div class="step done"><div class="step-num">2</div><div class="step-text"><strong>Create building profile</strong><span>Enter factory details above</span></div></div>
+              <div class="step"><div class="step-num">3</div><div class="step-text"><strong>Share credentials</strong><span>Building code + admin password + app link</span></div></div>
+              <div class="step"><div class="step-num">4</div><div class="step-text"><strong>Client onboards workers</strong><span>Workers join via mobile app with building code</span></div></div>
+              <div class="step"><div class="step-num">5</div><div class="step-text"><strong>Track enrollment</strong><span>You see worker count per company on your dashboard</span></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ALL BUILDINGS -->
+        <div id="page-buildings" class="page">
+          <div class="section-header">
+            <div>
+              <h3>All Client Buildings</h3>
+              <p>Every company with enrolled worker counts</p>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="showPage('onboard')">+ Onboard Client</button>
+          </div>
+          <div id="workers-table-all" class="companies-table-wrap"></div>
+          <div class="section-header" style="margin-top:28px">
+            <div><h3>Building Cards</h3></div>
+          </div>
+          <div id="all-buildings" class="buildings-grid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HANDOFF MODAL -->
+<div id="handoff-modal" class="overlay">
+  <div class="modal">
+    <div style="text-align:center;font-size:48px;margin-bottom:12px">✅</div>
+    <h3 style="text-align:center">Client Onboarded!</h3>
+    <p class="sub" style="text-align:center">Give these credentials to the factory head. Workers will use the building code in the mobile app.</p>
+
+    <div class="handoff-box">
+      <div style="font-size:11px;color:var(--muted);text-align:center;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Building Code</div>
+      <div class="big-code" id="modal-code">-</div>
+    </div>
+
+    <div class="handoff-box" style="padding:16px">
+      <div class="handoff-item"><span class="k">Client Company</span><span class="v" id="modal-company">-</span></div>
+      <div class="handoff-item"><span class="k">Building</span><span class="v" id="modal-building">-</span></div>
+      <div class="handoff-item"><span class="k">Admin Password</span><span class="v" style="color:var(--muted)">(the one you set)</span></div>
+      <div class="handoff-item"><span class="k">Company Admin Panel</span><span class="v" id="modal-admin-url" style="font-size:12px;color:var(--accent)">-</span></div>
+      <div class="handoff-item"><span class="k">Workers join via</span><span class="v">Mobile App + Building Code</span></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="copyHandoff()">📋 Copy All</button>
+      <button class="btn btn-primary" onclick="closeHandoff()">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div id="detail-modal" class="overlay">
+  <div class="modal lg">
+    <h3 id="detail-name">Building Details</h3>
+    <p class="sub">Building configuration and enrollment summary</p>
+    <div class="code-chip" style="margin:16px 0">
+      <span id="detail-code">-</span>
+      <button onclick="copyText(document.getElementById('detail-code').textContent)">📋</button>
+    </div>
+    <div class="detail-grid" id="detail-grid"></div>
+    <div id="detail-evac-section" style="margin:20px 0"></div>
+    <div id="detail-zones"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeDetail()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT EVACUATION MODAL -->
+<div id="evac-modal" class="overlay">
+  <div class="modal lg">
+    <h3 id="evac-modal-title">Edit Evacuation Plan</h3>
+    <p class="sub">Only super admin can update. Workers and company admin see this as read-only.</p>
+    <div id="evac-error" class="alert"></div>
+    <input type="hidden" id="evac-company-code">
+    <div class="field">
+      <label>Assembly Point</label>
+      <input type="text" id="evac-assembly" placeholder="Main assembly / muster point">
+    </div>
+    <div class="field">
+      <label>Evacuation Plan Details</label>
+      <textarea id="evac-plan" rows="8" placeholder="Full evacuation instructions..."></textarea>
+      <div class="field-hint">Optional text — you can also upload a document below.</div>
+    </div>
+    <div class="field">
+      <label>Upload Plan File</label>
+      <div id="evac-current-file"></div>
+      <div class="upload-zone" onclick="document.getElementById('evac-file').click()">
+        <div style="font-size:28px;margin-bottom:8px">📄</div>
+        <div>Click to upload or replace plan file</div>
+        <div class="field-hint">PDF, Word, TXT, PNG, JPG — max 10MB</div>
+        <input type="file" id="evac-file" accept=".pdf,.txt,.doc,.docx,.png,.jpg,.jpeg,.webp" onchange="onEvacFileSelect(this,'evac-file-label')">
+        <div id="evac-file-label" class="upload-preview"></div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-danger btn-sm" onclick="deleteEvacuationPlan()">Delete Plan</button>
+      <button class="btn btn-secondary" onclick="closeEvacModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEvacuationPlan()">Save Plan</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast">Copied!</div>
+
+<script>
+const API = window.location.origin.includes('file:') ? 'http://localhost:3000' : window.location.origin;
+let token = localStorage.getItem('sa_token') || '';
+let companies = [];
+let lastCreated = {};
+let currentDetailCompany = null;
+
+const titles = { dashboard: 'Dashboard', onboard: 'Onboard Client', buildings: 'All Buildings' };
+
+if (token) {
+  fetchCompanies().then(ok => {
+    if (ok) showApp();
+    else { token = ''; localStorage.removeItem('sa_token'); }
+  });
+}
+
+async function login() {
+  const password = document.getElementById('master-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.className = 'alert';
+  try {
+    const res = await fetch(`${API}/super-admin/login`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Login failed');
+    token = data.token;
+    localStorage.setItem('sa_token', token);
+    showApp();
+  } catch (err) {
+    errEl.className = 'alert error';
+    errEl.textContent = err.message;
+  }
+}
+
+function logout() {
+  token = '';
+  localStorage.removeItem('sa_token');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  fetchCompanies();
+}
+
+async function fetchCompanies() {
+  try {
+    const res = await fetch(`${API}/super-admin/companies`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) return false;
+    const data = await res.json();
+    companies = data.companies || [];
+    renderAll();
+    return true;
+  } catch { return false; }
+}
+
+function buildingCard(c) {
+  return `
+    <div class="building-card" onclick="openDetail('${c.company_code}')">
+      <div class="top">
+        <div>
+          <div class="name">${esc(c.name)}</div>
+          <div class="building">${esc(c.building_name || 'No building name')}</div>
+        </div>
+        <span class="status-pill ${c.is_active ? 'active' : 'inactive'}">${c.is_active ? 'Active' : 'Inactive'}</span>
+      </div>
+      <div class="code-chip" onclick="event.stopPropagation();copyText('${c.company_code}')">
+        <span>${c.company_code}</span><button>📋</button>
+      </div>
+      <div class="worker-badge ${(c.worker_count || 0) === 0 ? 'zero' : ''}">
+        👷 ${c.worker_count || 0} worker${(c.worker_count || 0) === 1 ? '' : 's'} enrolled
+      </div>
+      <div class="worker-badge ${c.has_evacuation_plan ? '' : 'zero'}" style="margin-bottom:0">
+        🚨 ${c.has_evacuation_plan ? 'Evacuation plan set' : 'No evacuation plan'}
+      </div>
+      <div class="meta-row">
+        <span>📍 ${esc(c.address || 'No address')}</span>
+      </div>
+      <div class="meta-row" style="margin-top:8px">
+        <span>🏢 ${c.total_floors} floor${c.total_floors > 1 ? 's' : ''}</span>
+        <span>🗺️ ${c.zone_count || 0} zones</span>
+        <span>📅 ${new Date(c.created_at).toLocaleDateString()}</span>
+      </div>
+    </div>`;
+}
+
+function companiesTableHtml(onRowClick = true) {
+  if (!companies.length) {
+    return `<div class="empty" style="padding:32px"><div class="icon">👷</div><p>No companies yet — worker counts will appear here after workers join via the mobile app.</p></div>`;
+  }
+  const rows = companies.slice().reverse().map(c => `
+    <tr ${onRowClick ? `onclick="openDetail('${c.company_code}')"` : ''}>
+      <td><strong>${esc(c.name)}</strong><br><span style="font-size:12px;color:var(--muted)">${esc(c.building_name || '-')}</span></td>
+      <td><span class="code-chip" style="margin:0;padding:6px 10px;font-size:12px" onclick="event.stopPropagation();copyText('${c.company_code}')">${c.company_code}</span></td>
+      <td><span class="workers-num ${(c.worker_count || 0) === 0 ? 'zero' : ''}">${c.worker_count || 0}</span></td>
+      <td>${c.zone_count || 0}</td>
+      <td><span class="status-pill ${c.is_active ? 'active' : 'inactive'}">${c.is_active ? 'Active' : 'Inactive'}</span></td>
+      <td style="color:var(--muted);font-size:12px">${new Date(c.created_at).toLocaleDateString()}</td>
+    </tr>`).join('');
+  return `<table class="companies-table">
+    <thead><tr>
+      <th>Company / Building</th>
+      <th>Building Code</th>
+      <th>Workers</th>
+      <th>Zones</th>
+      <th>Status</th>
+      <th>Onboarded</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function renderAll() {
+  const active = companies.filter(c => c.is_active).length;
+  const zones = companies.reduce((s, c) => s + (c.zone_count || 0), 0);
+  const workers = companies.reduce((s, c) => s + (c.worker_count || 0), 0);
+  document.getElementById('stat-total').textContent = companies.length;
+  document.getElementById('stat-workers').textContent = workers;
+  document.getElementById('stat-active').textContent = active;
+  document.getElementById('stat-zones').textContent = zones;
+
+  document.getElementById('workers-table-wrap').innerHTML = companiesTableHtml();
+  document.getElementById('workers-table-all').innerHTML = companiesTableHtml();
+
+  const empty = `<div class="empty" style="grid-column:1/-1"><div class="icon">🏭</div><h3>No clients yet</h3><p>Visit your first factory client and onboard them to generate a building code.</p><button class="btn btn-primary" onclick="showPage('onboard')">Onboard First Client</button></div>`;
+
+  const dash = document.getElementById('dashboard-buildings');
+  const all = document.getElementById('all-buildings');
+  if (!companies.length) {
+    dash.innerHTML = empty;
+    all.innerHTML = empty;
+  } else {
+    dash.innerHTML = companies.slice(-6).reverse().map(buildingCard).join('');
+    all.innerHTML = companies.slice().reverse().map(buildingCard).join('');
+  }
+}
+
+async function createCompany() {
+  const name = document.getElementById('c-name').value.trim();
+  const building_name = document.getElementById('c-building').value.trim();
+  const address = document.getElementById('c-address').value.trim();
+  const total_floors = parseInt(document.getElementById('c-floors').value) || 1;
+  const admin_password = document.getElementById('c-password').value;
+  const admin_password2 = document.getElementById('c-password2').value;
+  const errEl = document.getElementById('create-error');
+  errEl.className = 'alert';
+
+  if (!name) { errEl.className = 'alert error'; errEl.textContent = 'Company name is required.'; return; }
+  if (!admin_password) { errEl.className = 'alert error'; errEl.textContent = 'Admin password is required.'; return; }
+  if (admin_password !== admin_password2) { errEl.className = 'alert error'; errEl.textContent = 'Passwords do not match.'; return; }
+
+  try {
+    const res = await fetch(`${API}/super-admin/companies`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        name, building_name, address, total_floors, admin_password,
+        assembly_point: document.getElementById('c-assembly').value.trim(),
+        evacuation_plan: document.getElementById('c-evac-plan').value.trim(),
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to create');
+
+    const fileInput = document.getElementById('c-evac-file');
+    if (fileInput?.files?.[0]) {
+      await uploadEvacuationFile(data.company_code, fileInput, {
+        assembly_point: document.getElementById('c-assembly').value.trim(),
+        evacuation_plan: document.getElementById('c-evac-plan').value.trim(),
+      });
+    }
+
+    lastCreated = { code: data.company_code, name, building: building_name };
+    ['c-name','c-building','c-address','c-password','c-password2','c-assembly','c-evac-plan'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('c-floors').value = '1';
+    if (fileInput) { fileInput.value = ''; document.getElementById('c-evac-file-label').textContent = ''; }
+
+    const adminUrl = API + '/panels/company-admin/';
+    document.getElementById('modal-code').textContent = data.company_code;
+    document.getElementById('modal-company').textContent = name;
+    document.getElementById('modal-building').textContent = building_name || name;
+    document.getElementById('modal-admin-url').textContent = adminUrl;
+    document.getElementById('handoff-modal').classList.add('open');
+
+    await fetchCompanies();
+  } catch (err) {
+    errEl.className = 'alert error';
+    errEl.textContent = err.message;
+  }
+}
+
+async function openDetail(code) {
+  try {
+    const res = await fetch(`${API}/super-admin/companies/${code}`, { headers: { Authorization: `Bearer ${token}` } });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    const c = data.company;
+    currentDetailCompany = c;
+    document.getElementById('detail-name').textContent = c.name;
+    document.getElementById('detail-code').textContent = c.company_code;
+    document.getElementById('detail-grid').innerHTML = `
+      <div class="detail-item"><div class="k">Building</div><div class="v">${esc(c.building_name || '-')}</div></div>
+      <div class="detail-item"><div class="k">Address</div><div class="v">${esc(c.address || '-')}</div></div>
+      <div class="detail-item"><div class="k">Floors</div><div class="v">${c.total_floors}</div></div>
+      <div class="detail-item"><div class="k">Status</div><div class="v">${c.is_active ? '✅ Active' : '⛔ Inactive'}</div></div>
+      <div class="detail-item"><div class="k">Onboarded</div><div class="v">${new Date(c.created_at).toLocaleDateString()}</div></div>
+      <div class="detail-item"><div class="k">Workers Enrolled</div><div class="v" style="color:#22c55e;font-size:18px">${data.stats.worker_count ?? 0}</div></div>
+      <div class="detail-item"><div class="k">Zones</div><div class="v">${data.stats.total_zones}</div></div>`;
+    const zones = data.zones || [];
+    const hasPlan = !!(c.evacuation_plan || c.assembly_point || c.has_file);
+    const fileBlock = c.has_file && c.evacuation_plan_file_url
+      ? `<div class="upload-current" style="margin-top:12px"><span>📎 ${esc(c.evacuation_plan_file_name || 'Uploaded plan')}</span><a href="${API}${c.evacuation_plan_file_url}" target="_blank">View file</a></div>`
+      : '';
+    document.getElementById('detail-evac-section').innerHTML = `
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:18px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h4 style="font-size:15px;font-weight:700">🚨 Evacuation Plan <span style="font-size:11px;color:var(--accent);font-weight:600">(Super admin only)</span></h4>
+          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openEvacModalFromDetail()">${hasPlan ? 'Edit Plan' : 'Add Plan'}</button>
+        </div>
+        ${hasPlan ? `
+          ${c.assembly_point ? `<div style="margin-bottom:10px"><span style="font-size:11px;color:var(--muted);text-transform:uppercase">Assembly Point</span><div style="font-size:14px;font-weight:600;color:#22c55e;margin-top:4px">📍 ${esc(c.assembly_point)}</div></div>` : ''}
+          ${fileBlock}
+          ${c.evacuation_plan ? `<div style="font-size:13px;color:var(--muted);line-height:1.7;white-space:pre-wrap;margin-top:10px">${esc(c.evacuation_plan)}</div>` : (!c.has_file ? '<p style="color:var(--muted);font-size:13px">Assembly point only — add full plan details via Edit.</p>' : '')}
+          <p style="font-size:11px;color:var(--muted);margin-top:12px">Visible to workers (app) and company admin · read-only for them</p>
+        ` : '<p style="color:var(--muted);font-size:14px">No evacuation plan yet. Add one so workers know exit routes and assembly points.</p>'}
+      </div>`;
+    document.getElementById('detail-zones').innerHTML = zones.length
+      ? `<h4 style="font-size:14px;margin-bottom:12px;color:var(--muted)">Building Zones (${zones.length})</h4>` +
+        zones.map(z => `<div style="background:var(--surface2);padding:12px;border-radius:10px;margin-bottom:8px;font-size:14px"><strong>${esc(z.name)}</strong> <span style="color:var(--muted)">· Floor ${esc(z.floor)} · ${z.zone_type}</span></div>`).join('')
+      : '<p style="color:var(--muted);font-size:14px">No zones configured yet — client admin will add these.</p>';
+    document.getElementById('detail-modal').classList.add('open');
+  } catch {}
+}
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`page-${name}`).classList.add('active');
+  document.querySelector(`.nav-item[data-page="${name}"]`)?.classList.add('active');
+  document.getElementById('page-title').textContent = titles[name] || name;
+  if (name !== 'onboard') fetchCompanies();
+}
+
+function closeHandoff() { document.getElementById('handoff-modal').classList.remove('open'); }
+function closeDetail() { document.getElementById('detail-modal').classList.remove('open'); }
+
+let evacEditCode = '';
+function onEvacFileSelect(input, labelId) {
+  const label = document.getElementById(labelId);
+  if (!label) return;
+  label.textContent = input.files?.[0] ? `Selected: ${input.files[0].name}` : '';
+}
+
+function renderEvacCurrentFile(c) {
+  const el = document.getElementById('evac-current-file');
+  if (!el) return;
+  if (c?.has_file && c.evacuation_plan_file_url) {
+    el.innerHTML = `<div class="upload-current"><span>📎 Current: ${esc(c.evacuation_plan_file_name || 'plan file')}</span><span><a href="${API}${c.evacuation_plan_file_url}" target="_blank">View</a> · <button type="button" class="btn btn-danger btn-sm" onclick="removeEvacuationFile()">Remove file</button></span></div>`;
+  } else {
+    el.innerHTML = '';
+  }
+}
+
+async function uploadEvacuationFile(company_code, fileInput, fields = {}) {
+  const file = fileInput?.files?.[0];
+  if (!file) return null;
+  const fd = new FormData();
+  fd.append('plan_file', file);
+  if (fields.assembly_point) fd.append('assembly_point', fields.assembly_point);
+  if (fields.evacuation_plan) fd.append('evacuation_plan', fields.evacuation_plan);
+  const res = await fetch(`${API}/super-admin/companies/${company_code}/evacuation-plan/upload`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: fd,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'File upload failed');
+  return data;
+}
+
+function openEvacModalFromDetail() {
+  if (!currentDetailCompany) return;
+  const c = currentDetailCompany;
+  evacEditCode = c.company_code;
+  document.getElementById('evac-modal-title').textContent = `Evacuation Plan — ${c.name}`;
+  document.getElementById('evac-company-code').value = c.company_code;
+  document.getElementById('evac-assembly').value = c.assembly_point || '';
+  document.getElementById('evac-plan').value = c.evacuation_plan || '';
+  document.getElementById('evac-file').value = '';
+  document.getElementById('evac-file-label').textContent = '';
+  renderEvacCurrentFile(c);
+  document.getElementById('evac-error').className = 'alert';
+  document.getElementById('evac-modal').classList.add('open');
+}
+function closeEvacModal() {
+  document.getElementById('evac-modal').classList.remove('open');
+  document.getElementById('evac-file').value = '';
+  document.getElementById('evac-file-label').textContent = '';
+}
+
+async function removeEvacuationFile() {
+  const company_code = evacEditCode || document.getElementById('evac-company-code').value;
+  if (!confirm('Remove the uploaded plan file? Text instructions will remain.')) return;
+  const errEl = document.getElementById('evac-error');
+  errEl.className = 'alert';
+  try {
+    const res = await fetch(`${API}/super-admin/companies/${company_code}/evacuation-plan/file`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to remove file');
+    if (currentDetailCompany?.company_code === company_code) {
+      currentDetailCompany = { ...currentDetailCompany, ...data };
+    }
+    renderEvacCurrentFile(data);
+    await fetchCompanies();
+  } catch (err) {
+    errEl.className = 'alert error';
+    errEl.textContent = err.message;
+  }
+}
+
+async function saveEvacuationPlan() {
+  const company_code = evacEditCode || document.getElementById('evac-company-code').value;
+  const assembly_point = document.getElementById('evac-assembly').value.trim();
+  const evacuation_plan = document.getElementById('evac-plan').value.trim();
+  const errEl = document.getElementById('evac-error');
+  errEl.className = 'alert';
+  try {
+    const res = await fetch(`${API}/super-admin/companies/${company_code}/evacuation-plan`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ assembly_point, evacuation_plan }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to save');
+
+    const fileInput = document.getElementById('evac-file');
+    if (fileInput?.files?.[0]) {
+      await uploadEvacuationFile(company_code, fileInput, { assembly_point, evacuation_plan });
+    }
+
+    closeEvacModal();
+    closeDetail();
+    await fetchCompanies();
+    openDetail(company_code);
+    const t = document.getElementById('toast');
+    t.textContent = 'Evacuation plan saved!';
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+  } catch (err) {
+    errEl.className = 'alert error';
+    errEl.textContent = err.message;
+  }
+}
+
+async function deleteEvacuationPlan() {
+  const company_code = evacEditCode || document.getElementById('evac-company-code').value;
+  if (!confirm('Delete evacuation plan for this building? Workers and company admin will no longer see it.')) return;
+  try {
+    const res = await fetch(`${API}/super-admin/companies/${company_code}/evacuation-plan`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error('Failed to delete');
+    closeEvacModal();
+    closeDetail();
+    await fetchCompanies();
+    openDetail(company_code);
+  } catch (err) {
+    document.getElementById('evac-error').className = 'alert error';
+    document.getElementById('evac-error').textContent = err.message;
+  }
+}
+
+function copyHandoff() {
+  const text = `Factory Alert — Client Credentials\n\nBuilding Code: ${lastCreated.code}\nCompany: ${lastCreated.name}\nBuilding: ${lastCreated.building}\nAdmin Panel: ${API}/panels/company-admin/\n\nWorkers: Download Factory Alert app and enter the building code + phone number.`;
+  copyText(text);
+}
+
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    const t = document.getElementById('toast');
+    t.textContent = 'Copied to clipboard!';
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+  });
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+</script>
+</body>
+</html>

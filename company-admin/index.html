@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Factory Alert — Company Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #060a08;
+    --surface: #0e1410;
+    --surface2: #141c16;
+    --surface3: #1a241c;
+    --border: #243028;
+    --accent: #22c55e;
+    --accent-dim: rgba(34,197,94,0.12);
+    --accent-glow: rgba(34,197,94,0.2);
+    --red: #ef4444;
+    --red-dim: rgba(239,68,68,0.12);
+    --orange: #f59e0b;
+    --blue: #3b82f6;
+    --text: #eef5f0;
+    --muted: #6b8a72;
+    --radius: 12px;
+    --font: 'DM Sans', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; line-height: 1.5; }
+
+  #login-screen {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(34,197,94,0.12), transparent), var(--bg);
+    padding: 24px;
+  }
+  .login-wrap { width: 100%; max-width: 440px; }
+  .login-brand { text-align: center; margin-bottom: 32px; }
+  .login-brand .icon {
+    width: 56px; height: 56px; margin: 0 auto 16px;
+    background: linear-gradient(135deg, var(--accent), #16a34a);
+    border-radius: 14px; display: flex; align-items: center; justify-content: center;
+    font-size: 28px; box-shadow: 0 8px 32px var(--accent-glow);
+  }
+  .login-brand h1 { font-size: 24px; font-weight: 800; }
+  .login-brand p { color: var(--muted); font-size: 14px; margin-top: 6px; }
+  .login-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 36px; }
+  .login-card h2 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .login-card .sub { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
+
+  .field { margin-bottom: 18px; }
+  .field label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.6px; }
+  .field input, .field select, .field textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 16px; color: var(--text);
+    font-size: 15px; font-family: var(--font); outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+  .code-input { font-family: var(--mono); font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 12px 22px; border-radius: var(--radius); font-size: 14px; font-weight: 600;
+    cursor: pointer; border: none; font-family: var(--font); transition: all 0.15s;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), #16a34a); color: white; box-shadow: 0 4px 20px var(--accent-glow); }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost { background: transparent; color: var(--muted); }
+  .btn-danger { background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,68,68,0.25); }
+  .btn-block { width: 100%; }
+  .btn-sm { padding: 8px 14px; font-size: 13px; }
+
+  .alert { padding: 12px 16px; border-radius: var(--radius); font-size: 14px; margin-bottom: 16px; display: none; }
+  .alert.error { display: block; background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+
+  #app { display: none; }
+  .shell { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 260px; background: var(--surface); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 50;
+  }
+  .sidebar-brand { padding: 24px 20px; border-bottom: 1px solid var(--border); }
+  .sidebar-brand .company { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .sidebar-brand .building { font-size: 12px; color: var(--muted); }
+  .building-code-box {
+    margin-top: 14px; background: var(--accent-dim); border: 1px dashed rgba(34,197,94,0.35);
+    border-radius: 10px; padding: 12px;
+  }
+  .building-code-box .label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .building-code-box .code { font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: 1px; margin-top: 4px; cursor: pointer; }
+
+  .nav { padding: 16px 12px; flex: 1; }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+    border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 500;
+    color: var(--muted); margin-bottom: 4px; transition: all 0.15s;
+  }
+  .nav-item:hover { color: var(--text); background: var(--surface2); }
+  .nav-item.active { color: var(--text); background: var(--accent-dim); }
+  .nav-item.active .nav-icon { background: var(--accent); color: white; }
+  .nav-icon {
+    width: 32px; height: 32px; border-radius: 8px; background: var(--surface2);
+    display: flex; align-items: center; justify-content: center; font-size: 15px;
+  }
+  .nav-badge {
+    margin-left: auto; background: var(--accent); color: white;
+    font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px;
+  }
+  .nav-badge.alert { background: var(--red); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+  .main { flex: 1; margin-left: 260px; }
+  .topbar {
+    height: 64px; border-bottom: 1px solid var(--border); background: rgba(6,10,8,0.85);
+    backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: space-between;
+    padding: 0 32px; position: sticky; top: 0; z-index: 40;
+  }
+  .topbar h2 { font-size: 18px; font-weight: 700; }
+  .live-banner {
+    display: none; align-items: center; gap: 8px; color: var(--red);
+    font-size: 13px; font-weight: 700; background: var(--red-dim);
+    padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(239,68,68,0.3);
+  }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); animation: pulse 1.5s infinite; }
+  .content { padding: 32px; max-width: 1200px; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ENROLL BANNER */
+  .enroll-banner {
+    background: linear-gradient(135deg, rgba(34,197,94,0.08), rgba(34,197,94,0.02));
+    border: 1px solid rgba(34,197,94,0.25); border-radius: 16px; padding: 24px 28px;
+    margin-bottom: 28px; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;
+  }
+  .enroll-banner h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .enroll-banner p { font-size: 13px; color: var(--muted); max-width: 500px; }
+  .enroll-steps { display: flex; gap: 20px; font-size: 13px; color: var(--muted); margin-top: 12px; flex-wrap: wrap; }
+  .enroll-steps span { display: flex; align-items: center; gap: 6px; }
+
+  /* STATS */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .stat .num { font-size: 32px; font-weight: 800; }
+  .stat .label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .stat.highlight .num { color: var(--accent); }
+  .stat.danger .num { color: var(--red); }
+
+  /* WORKERS */
+  .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; gap: 16px; flex-wrap: wrap; }
+  .search-box {
+    display: flex; align-items: center; gap: 10px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 16px; flex: 1; max-width: 360px;
+  }
+  .search-box input { background: none; border: none; color: var(--text); font-size: 14px; outline: none; width: 100%; font-family: var(--font); }
+
+  .workers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+  .worker-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px; display: flex; gap: 16px; align-items: flex-start;
+  }
+  .worker-avatar {
+    width: 48px; height: 48px; border-radius: 12px; background: var(--accent-dim);
+    display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;
+    font-weight: 700; color: var(--accent);
+  }
+  .worker-info { flex: 1; min-width: 0; }
+  .worker-info .name { font-size: 16px; font-weight: 700; }
+  .worker-info .position { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .worker-info .phone { font-family: var(--mono); font-size: 13px; color: var(--accent); margin-top: 8px; }
+  .worker-meta { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
+  .worker-status { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+  .worker-status.online { background: var(--accent-dim); color: var(--accent); }
+  .worker-status.offline { background: var(--surface2); color: var(--muted); }
+  .worker-joined { font-size: 11px; color: var(--muted); }
+
+  /* TABLE */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  th { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border); background: var(--surface2); }
+  td { padding: 14px 18px; font-size: 14px; border-bottom: 1px solid rgba(36,48,40,0.5); }
+  tr:last-child td { border-bottom: none; }
+
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .badge-fire { background: var(--red-dim); color: var(--red); }
+  .badge-medical { background: rgba(59,130,246,0.12); color: var(--blue); }
+  .badge-evacuation { background: rgba(245,158,11,0.12); color: var(--orange); }
+  .badge-security { background: rgba(139,92,246,0.12); color: #a78bfa; }
+  .badge-general { background: var(--surface2); color: var(--muted); }
+  .badge-active { background: var(--red-dim); color: var(--red); }
+  .badge-resolved { background: var(--accent-dim); color: var(--accent); }
+
+  .zone-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+  .zones-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+  .zone-card h4 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .zone-card .meta { font-size: 12px; color: var(--muted); }
+
+  .empty { text-align: center; padding: 56px 24px; }
+  .empty .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+  .empty h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+  .empty p { color: var(--muted); font-size: 14px; max-width: 400px; margin: 0 auto; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 200; align-items: center; justify-content: center; padding: 24px; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 32px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+  .modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .modal p { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .checkbox-row { display: flex; align-items: center; gap: 8px; font-size: 14px; margin-bottom: 12px; cursor: pointer; }
+  .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; }
+
+  .alert-banner {
+    background: var(--red-dim); border: 1px solid rgba(239,68,68,0.35);
+    border-radius: 14px; margin-bottom: 24px; overflow: hidden;
+  }
+  .alert-banner-header { padding: 14px 20px; font-weight: 700; color: var(--red); display: flex; align-items: center; gap: 8px; }
+
+  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--surface3); border: 1px solid var(--border); padding: 14px 20px; border-radius: 12px; font-size: 14px; z-index: 300; opacity: 0; transition: all 0.3s; }
+  .toast.show { opacity: 1; }
+
+  .evac-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 28px; margin-bottom: 20px;
+  }
+  .evac-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .evac-readonly {
+    background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25);
+    border-radius: 10px; padding: 12px 16px; font-size: 13px; color: var(--orange); margin-bottom: 20px;
+  }
+  .evac-assembly {
+    background: var(--accent-dim); border: 1px solid rgba(34,197,94,0.3);
+    border-radius: 12px; padding: 18px; margin-bottom: 20px;
+  }
+  .evac-assembly .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .evac-assembly .value { font-size: 18px; font-weight: 700; color: var(--accent); margin-top: 6px; }
+  .evac-body { font-size: 15px; color: var(--text); line-height: 1.8; white-space: pre-wrap; }
+
+  .contacts-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 28px; margin-top: 20px;
+  }
+  .contacts-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .contacts-card .sub { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
+  .contact-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 14px 0; border-bottom: 1px solid rgba(36,48,40,0.5);
+  }
+  .contact-row:last-child { border-bottom: none; }
+  .contact-info .label { font-size: 15px; font-weight: 700; }
+  .contact-info .phone { font-family: var(--mono); font-size: 14px; color: var(--accent); margin-top: 4px; }
+  .contact-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+  .modal.modal-wide { max-width: 720px; }
+  .ack-summary { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .ack-stat {
+    flex: 1; min-width: 120px; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px; text-align: center;
+  }
+  .ack-stat .num { font-size: 24px; font-weight: 800; }
+  .ack-stat .lbl { font-size: 11px; color: var(--muted); margin-top: 4px; text-transform: uppercase; }
+  .ack-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  .ack-table th { font-size: 10px; padding: 10px 12px; }
+  .ack-table td { padding: 12px; font-size: 13px; vertical-align: middle; }
+  .ack-yes { color: var(--accent); font-weight: 700; }
+  .ack-no { color: var(--orange); font-weight: 600; }
+  .ack-done { color: var(--muted); font-size: 12px; }
+  .badge-pending { background: rgba(245,158,11,0.12); color: var(--orange); }
+  .badge-done { background: var(--accent-dim); color: var(--accent); }
+
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .two-col { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-wrap">
+    <div class="login-brand">
+      <div class="icon">🏭</div>
+      <h1>Factory Alert</h1>
+      <p>Company Admin — Manage your workers & alerts</p>
+    </div>
+    <div class="login-card">
+      <h2>Sign in to your building</h2>
+      <p class="sub">Use the building code and admin password provided by Factory Alert.</p>
+      <div id="login-error" class="alert"></div>
+      <div class="field">
+        <label>Building Code</label>
+        <input type="text" id="login-code" class="code-input" placeholder="e.g. TOYOTA2026">
+      </div>
+      <div class="field">
+        <label>Admin Password</label>
+        <input type="password" id="login-password" placeholder="Your admin password" onkeydown="if(event.key==='Enter')login()">
+      </div>
+      <button class="btn btn-primary btn-block" onclick="login()">Sign In</button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="company" id="sb-company">-</div>
+        <div class="building" id="sb-building">-</div>
+        <div class="building-code-box" onclick="copyCode()">
+          <div class="label">Worker Building Code</div>
+          <div class="code" id="sb-code">-</div>
+        </div>
+      </div>
+      <nav class="nav">
+        <div class="nav-item active" data-page="workers" onclick="showPage('workers')">
+          <div class="nav-icon">👷</div> Workers <span class="nav-badge" id="nav-workers">0</span>
+        </div>
+        <div class="nav-item" data-page="dashboard" onclick="showPage('dashboard')">
+          <div class="nav-icon">📊</div> Dashboard
+        </div>
+        <div class="nav-item" data-page="alerts" onclick="showPage('alerts')">
+          <div class="nav-icon">🚨</div> Alerts <span class="nav-badge alert" id="nav-alerts" style="display:none">!</span>
+        </div>
+        <div class="nav-item" data-page="zones" onclick="showPage('zones')">
+          <div class="nav-icon">🗺️</div> Zones
+        </div>
+        <div class="nav-item" data-page="evacuation" onclick="showPage('evacuation')">
+          <div class="nav-icon">🚨</div> Evacuation Plan
+        </div>
+        <div class="nav-item" data-page="emergency-contacts" onclick="showPage('emergency-contacts')">
+          <div class="nav-icon">📞</div> Emergency Numbers
+        </div>
+      </nav>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <h2 id="page-title">Workers</h2>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="live-banner" id="live-banner"><span class="live-dot"></span> LIVE ALERT</div>
+          <button class="btn btn-ghost btn-sm" onclick="logout()">Sign Out</button>
+        </div>
+      </header>
+
+      <div class="content">
+        <!-- WORKERS (default page) -->
+        <div id="page-workers" class="page active">
+          <div class="enroll-banner">
+            <div>
+              <h3>How workers join your building</h3>
+              <p>Workers download the Factory Alert mobile app, enter your building code, their phone number, name, position, and <strong>work zone</strong>. Add zones first under Zones — they appear here automatically.</p>
+              <div class="enroll-steps">
+                <span>1️⃣ Add zones (Zones page)</span>
+                <span>2️⃣ Download app</span>
+                <span>3️⃣ Enter building code</span>
+                <span>4️⃣ Pick work zone</span>
+                <span>5️⃣ Appears here ✓</span>
+              </div>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="copyCode()">📋 Copy Building Code</button>
+          </div>
+
+          <div class="toolbar">
+            <div class="search-box">
+              <span>🔍</span>
+              <input type="text" id="worker-search" placeholder="Search by name, phone, position, or zone..." oninput="filterWorkers()">
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="loadWorkers()">↻ Refresh</button>
+          </div>
+
+          <div id="workers-grid" class="workers-grid"></div>
+        </div>
+
+        <!-- DASHBOARD -->
+        <div id="page-dashboard" class="page">
+          <div class="stats">
+            <div class="stat highlight"><div class="num" id="d-workers">-</div><div class="label">Enrolled Workers</div></div>
+            <div class="stat danger"><div class="num" id="d-active-alerts">-</div><div class="label">Active Alerts</div></div>
+            <div class="stat"><div class="num" id="d-zones">-</div><div class="label">Zones</div></div>
+            <div class="stat"><div class="num" id="d-total-alerts">-</div><div class="label">Total Alerts</div></div>
+          </div>
+
+          <div id="active-alerts-banner" class="alert-banner" style="display:none">
+            <div class="alert-banner-header"><span class="live-dot"></span> Active Alerts — Immediate Attention</div>
+            <table>
+              <thead><tr><th>Type</th><th>Location</th><th>Triggered By</th><th>Time</th><th></th></tr></thead>
+              <tbody id="active-alerts-table"></tbody>
+            </table>
+          </div>
+
+          <div class="card">
+            <div style="padding:16px 20px;border-bottom:1px solid var(--border);font-weight:600">Recent Alerts</div>
+            <table>
+              <thead><tr><th>Type</th><th>Location</th><th>By</th><th>Time</th><th>Status</th></tr></thead>
+              <tbody id="recent-alerts-table"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ALERTS -->
+        <div id="page-alerts" class="page">
+          <div class="toolbar">
+            <div><p style="color:var(--muted);font-size:14px">Complete alert history for your building</p></div>
+            <button class="btn btn-secondary btn-sm" onclick="loadAlerts()">↻ Refresh</button>
+          </div>
+          <div class="card">
+            <table>
+              <thead><tr><th>Type</th><th>Zone</th><th>Triggered By</th><th>Worker Ack</th><th>Admin Ack</th><th>Time</th><th>Status</th><th></th></tr></thead>
+              <tbody id="alerts-table"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ZONES -->
+        <div id="page-zones" class="page">
+          <div class="toolbar">
+            <div><p style="color:var(--muted);font-size:14px">Building areas — workers see these during alerts</p></div>
+            <button class="btn btn-primary btn-sm" onclick="openZoneModal()">+ Add Zone</button>
+          </div>
+          <div id="zones-grid" class="zones-grid"></div>
+        </div>
+
+        <!-- EVACUATION PLAN — read-only (super admin only) -->
+        <div id="page-evacuation" class="page">
+          <div class="evac-readonly">🔒 <strong>Read-only.</strong> Evacuation plan is uploaded and managed only by Factory Alert super admin. You cannot add, edit, or delete it from this panel.</div>
+          <div id="evac-content" class="evac-card">
+            <div class="empty" style="padding:32px"><div class="icon">🚨</div><p>Loading evacuation plan...</p></div>
+          </div>
+        </div>
+
+        <!-- EMERGENCY CONTACTS — company admin manages -->
+        <div id="page-emergency-contacts" class="page">
+          <div class="contacts-card" style="margin-top:0">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:8px">
+              <div>
+                <h3>📞 Emergency Dial Numbers</h3>
+                <p class="sub">You manage these numbers. Workers see them on the alert Acknowledge screen — tap opens the phone dialer.</p>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="openContactModal()">+ Add Number</button>
+            </div>
+            <div id="contacts-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ZONE MODAL -->
+<div id="zone-modal" class="modal-overlay">
+  <div class="modal">
+    <h3>Add Zone</h3>
+    <p>Define a building area with safety info workers see during alerts.</p>
+    <div id="zone-error" class="alert"></div>
+    <div class="two-col">
+      <div class="field"><label>Zone Name *</label><input type="text" id="z-name" placeholder="e.g. Welding Bay"></div>
+      <div class="field"><label>Floor</label><input type="text" id="z-floor" placeholder="Ground, Floor 1..."></div>
+    </div>
+    <div class="field">
+      <label>Zone Type</label>
+      <select id="z-type">
+        <option value="general">General Area</option>
+        <option value="production">Production Floor</option>
+        <option value="warehouse">Warehouse</option>
+        <option value="office">Office</option>
+        <option value="chemical">Chemical Store</option>
+        <option value="electrical">Electrical Room</option>
+      </select>
+    </div>
+    <div class="field"><label>Description</label><textarea id="z-desc" rows="2" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;color:var(--text);font-family:var(--font)"></textarea></div>
+    <label class="checkbox-row"><input type="checkbox" id="z-extinguisher" onchange="toggleExt()"> 🧯 Has Fire Extinguisher</label>
+    <div id="z-ext-fields" style="display:none" class="field"><label>Location</label><input type="text" id="z-ext-loc"></div>
+    <label class="checkbox-row"><input type="checkbox" id="z-exit" onchange="toggleExit()"> 🚪 Has Emergency Exit</label>
+    <div id="z-exit-fields" style="display:none" class="field"><label>Exit Direction</label><input type="text" id="z-exit-dir"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeZoneModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="createZone()">Save Zone</button>
+    </div>
+  </div>
+</div>
+
+<!-- EMERGENCY CONTACT MODAL -->
+<div id="contact-modal" class="modal-overlay" onclick="if(event.target===this)closeContactModal()">
+  <div class="modal">
+    <h3 id="contact-modal-title">Add Emergency Number</h3>
+    <p>Shown on worker phones during alerts with a one-tap dial button.</p>
+    <div id="contact-error" class="alert"></div>
+    <input type="hidden" id="contact-id">
+    <div class="field">
+      <label>Label *</label>
+      <input type="text" id="contact-label" placeholder="e.g. Security, Fire Dept, Site Manager">
+    </div>
+    <div class="field">
+      <label>Phone Number *</label>
+      <input type="tel" id="contact-phone" placeholder="e.g. +91 98765 43210">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeContactModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveContact()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ACKNOWLEDGMENTS MODAL -->
+<div id="ack-modal" class="modal-overlay" onclick="if(event.target===this)closeAckModal()">
+  <div class="modal modal-wide">
+    <h3 id="ack-modal-title">Alert Acknowledgments</h3>
+    <p id="ack-modal-sub">Worker must tap Acknowledge 3× on mobile after exiting. You then confirm each worker at assembly point.</p>
+    <div id="ack-summary" class="ack-summary"></div>
+    <div class="card" style="overflow-x:auto">
+      <table class="ack-table">
+        <thead>
+          <tr>
+            <th>Worker</th>
+            <th>Worker Acknowledged</th>
+            <th>Admin Acknowledge</th>
+          </tr>
+        </thead>
+        <tbody id="ack-table-body"></tbody>
+      </table>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeAckModal()">Close</button>
+      <button class="btn btn-primary" onclick="refreshAckModal()">↻ Refresh</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast">Copied!</div>
+
+<script>
+const API = window.location.origin.includes('file:') ? 'http://localhost:3000' : window.location.origin;
+let token = localStorage.getItem('ca_token') || '';
+let companyName = localStorage.getItem('ca_company') || '';
+let buildingName = localStorage.getItem('ca_building') || '';
+let companyCode = localStorage.getItem('ca_code') || '';
+let allWorkers = [];
+let emergencyContacts = [];
+let refreshInterval;
+let currentAckAlertId = null;
+
+const titles = { workers: 'Workers', dashboard: 'Dashboard', alerts: 'Alerts', zones: 'Zones', evacuation: 'Evacuation Plan', 'emergency-contacts': 'Emergency Numbers' };
+
+if (token) { showApp(); loadWorkers(); loadDashboard(); }
+
+async function login() {
+  const company_code = document.getElementById('login-code').value.trim().toUpperCase();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.className = 'alert';
+  try {
+    const res = await fetch(`${API}/company-admin/login`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ company_code, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Login failed');
+    token = data.token;
+    companyName = data.company_name;
+    buildingName = data.building_name || data.company_name;
+    companyCode = data.company_code;
+    localStorage.setItem('ca_token', token);
+    localStorage.setItem('ca_company', companyName);
+    localStorage.setItem('ca_building', buildingName);
+    localStorage.setItem('ca_code', companyCode);
+    showApp();
+    loadWorkers();
+    loadDashboard();
+  } catch (err) {
+    errEl.className = 'alert error';
+    errEl.textContent = err.message;
+  }
+}
+
+function logout() {
+  token = '';
+  ['ca_token','ca_company','ca_building','ca_code'].forEach(k => localStorage.removeItem(k));
+  clearInterval(refreshInterval);
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('sb-company').textContent = companyName;
+  document.getElementById('sb-building').textContent = buildingName;
+  document.getElementById('sb-code').textContent = companyCode;
+  refreshInterval = setInterval(() => {
+    const p = document.querySelector('.page.active')?.id;
+    if (p === 'page-workers') loadWorkers();
+    if (p === 'page-dashboard') loadDashboard();
+    if (p === 'page-alerts') loadAlerts();
+    if (currentAckAlertId && document.getElementById('ack-modal').classList.contains('open')) {
+      refreshAckModal();
+    }
+  }, 10000);
+}
+
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(`${API}${path}`, {
+    ...opts, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(opts.headers || {}) },
+  });
+  if (res.status === 401) { logout(); throw new Error('Session expired'); }
+  return res.json();
+}
+
+function initials(name) { return (name || '?').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase(); }
+
+async function loadWorkers() {
+  try {
+    const data = await apiFetch('/company-admin/workers');
+    allWorkers = data.workers || [];
+    document.getElementById('nav-workers').textContent = allWorkers.filter(w => w.is_active).length;
+    filterWorkers();
+  } catch {}
+}
+
+function filterWorkers() {
+  const q = (document.getElementById('worker-search').value || '').toLowerCase();
+  const workers = allWorkers.filter(w =>
+    !q || w.name.toLowerCase().includes(q) || w.phone.includes(q) || (w.position || '').toLowerCase().includes(q) || (w.zone_name || '').toLowerCase().includes(q)
+  );
+  const grid = document.getElementById('workers-grid');
+  if (!workers.length) {
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="icon">👷</div><h3>${allWorkers.length ? 'No matches' : 'No workers enrolled yet'}</h3><p>${allWorkers.length ? 'Try a different search.' : 'Share your building code with workers. They join via the mobile app with their phone number.'}</p></div>`;
+    return;
+  }
+  grid.innerHTML = workers.map(w => `
+    <div class="worker-card">
+      <div class="worker-avatar">${initials(w.name)}</div>
+      <div class="worker-info">
+        <div class="name">${esc(w.name)}</div>
+        <div class="position">${esc(w.position || 'No position set')}</div>
+        <div class="phone">📱 ${esc(w.phone)}</div>
+        <div style="font-size:13px;color:var(--accent);margin-top:8px">📍 Zone: ${esc(w.zone_name || 'Not set')}</div>
+        <div class="worker-meta">
+          <span class="worker-status ${w.has_fcm ? 'online' : 'offline'}">${w.has_fcm ? '✓ App connected' : '⚠ App not connected'}</span>
+          <span class="worker-joined">Joined ${new Date(w.joined_at).toLocaleDateString()}</span>
+        </div>
+        ${w.is_active ? `<button class="btn btn-danger btn-sm" style="margin-top:12px" onclick="removeWorker('${w.id}','${esc(w.name)}')">Remove Worker</button>` : '<span style="font-size:12px;color:var(--muted);margin-top:12px;display:block">Removed</span>'}
+      </div>
+    </div>`).join('');
+}
+
+async function loadDashboard() {
+  try {
+    const data = await apiFetch('/company-admin/dashboard');
+    document.getElementById('d-workers').textContent = data.stats.total_workers;
+    document.getElementById('d-active-alerts').textContent = data.stats.active_alerts;
+    document.getElementById('d-zones').textContent = data.stats.total_zones;
+    document.getElementById('d-total-alerts').textContent = data.stats.total_alerts;
+
+    const hasActive = data.stats.active_alerts > 0;
+    document.getElementById('live-banner').style.display = hasActive ? 'flex' : 'none';
+    document.getElementById('nav-alerts').style.display = hasActive ? 'inline' : 'none';
+    document.getElementById('active-alerts-banner').style.display = hasActive ? 'block' : 'none';
+
+    if (hasActive) {
+      document.getElementById('active-alerts-table').innerHTML = data.active_alerts.map(a => `
+        <tr><td>${alertBadge(a.alert_type)}</td><td>${esc(a.zone_name || a.worker_zone_name || '-')}</td><td>${esc(a.triggered_by_name)}</td>
+        <td style="color:var(--muted);font-size:12px">${timeAgo(a.created_at)}</td>
+        <td>
+          <button class="btn btn-primary btn-sm" onclick="openAckModal('${a.id}')">Acknowledgments</button>
+          <button class="btn btn-danger btn-sm" onclick="resolveAlert('${a.id}')">Resolve</button>
+        </td></tr>`).join('');
+    }
+
+    const recent = data.recent_alerts || [];
+    document.getElementById('recent-alerts-table').innerHTML = recent.length
+      ? recent.map(a => `<tr><td>${alertBadge(a.alert_type)}</td><td>${esc(a.zone_name || a.worker_zone_name || '-')}</td><td>${esc(a.triggered_by_name)}</td><td style="color:var(--muted);font-size:12px">${timeAgo(a.created_at)}</td><td><span class="badge badge-${a.status}">${a.status}</span></td></tr>`).join('')
+      : `<tr><td colspan="5"><div class="empty" style="padding:32px"><div class="icon">✅</div><p>All clear — no alerts yet</p></div></td></tr>`;
+  } catch {}
+}
+
+async function loadAlerts() {
+  try {
+    const data = await apiFetch('/company-admin/alerts');
+    const alerts = data.alerts || [];
+    document.getElementById('alerts-table').innerHTML = alerts.length
+      ? alerts.map(a => {
+          const s = a.acknowledgment_summary || {};
+          return `<tr>
+          <td>${alertBadge(a.alert_type)}</td><td>${esc(a.zone_name || a.worker_zone_name || '-')}</td><td>${esc(a.triggered_by_name)}</td>
+          <td><span class="badge ${s.worker_acknowledged === s.total_workers && s.total_workers ? 'badge-done' : 'badge-pending'}">${s.worker_acknowledged || 0}/${s.total_workers || 0}</span></td>
+          <td><span class="badge ${s.admin_acknowledged === s.worker_acknowledged && s.worker_acknowledged ? 'badge-done' : 'badge-pending'}">${s.admin_acknowledged || 0}/${s.worker_acknowledged || 0}</span></td>
+          <td style="color:var(--muted);font-size:12px">${timeAgo(a.created_at)}</td>
+          <td><span class="badge badge-${a.status}">${a.status}</span></td>
+          <td style="white-space:nowrap">
+            <button class="btn btn-primary btn-sm" onclick="openAckModal('${a.id}')">Acknowledgments</button>
+            ${a.status==='active'?`<button class="btn btn-danger btn-sm" onclick="resolveAlert('${a.id}')">Resolve</button>`:''}
+          </td></tr>`;
+        }).join('')
+      : `<tr><td colspan="8"><div class="empty" style="padding:32px"><div class="icon">🚨</div><p>No alerts recorded</p></div></td></tr>`;
+  } catch {}
+}
+
+async function openAckModal(alertId) {
+  currentAckAlertId = alertId;
+  document.getElementById('ack-modal').classList.add('open');
+  await refreshAckModal();
+}
+
+function closeAckModal() {
+  currentAckAlertId = null;
+  document.getElementById('ack-modal').classList.remove('open');
+}
+
+async function refreshAckModal() {
+  if (!currentAckAlertId) return;
+  try {
+    const data = await apiFetch(`/company-admin/alerts/${currentAckAlertId}/acknowledgments`);
+    const alert = data.alert;
+    const acks = data.acknowledgments || [];
+    const sum = data.summary || {};
+
+    document.getElementById('ack-modal-title').textContent =
+      `${(alert.alert_type || 'alert').toUpperCase()} — Acknowledgments`;
+    document.getElementById('ack-modal-sub').textContent =
+      `${alert.zone_name || alert.worker_zone_name || 'Unknown'} · Triggered by ${alert.triggered_by_name} · ${timeAgo(alert.created_at)}`;
+
+    document.getElementById('ack-summary').innerHTML = `
+      <div class="ack-stat"><div class="num">${sum.total || 0}</div><div class="lbl">Workers</div></div>
+      <div class="ack-stat"><div class="num" style="color:var(--orange)">${sum.worker_acknowledged || 0}</div><div class="lbl">Worker Ack</div></div>
+      <div class="ack-stat"><div class="num" style="color:var(--accent)">${sum.admin_acknowledged || 0}</div><div class="lbl">Admin Ack</div></div>
+      <div class="ack-stat"><div class="num" style="color:var(--red)">${(sum.total || 0) - (sum.worker_acknowledged || 0)}</div><div class="lbl">Pending Worker</div></div>`;
+
+    document.getElementById('ack-table-body').innerHTML = acks.length
+      ? acks.map(row => `
+        <tr>
+          <td><strong>${esc(row.worker_name)}</strong></td>
+          <td>
+            ${row.worker_acknowledged
+              ? `<span class="ack-yes">✓ Yes</span><div class="ack-done">${new Date(row.worker_acknowledged_at).toLocaleString()}</div>`
+              : `<span class="ack-no">✗ Not yet</span><div class="ack-done">Waiting for 3× tap on app</div>`}
+          </td>
+          <td>
+            ${row.admin_acknowledged
+              ? `<span class="ack-yes">✓ Confirmed</span><div class="ack-done">${esc(row.admin_acknowledged_by || 'Admin')} · ${new Date(row.admin_acknowledged_at).toLocaleString()}</div>`
+              : row.worker_acknowledged
+                ? `<button class="btn btn-primary btn-sm" onclick="adminAcknowledge('${currentAckAlertId}','${row.worker_id}')">Acknowledge Worker</button>`
+                : `<span class="ack-done">Worker must acknowledge first</span>`}
+          </td>
+        </tr>`).join('')
+      : `<tr><td colspan="3"><div class="empty" style="padding:24px"><p>No workers enrolled for this alert</p></div></td></tr>`;
+  } catch (err) {
+    showToast(err.message || 'Could not load acknowledgments');
+  }
+}
+
+async function adminAcknowledge(alertId, workerId) {
+  if (!confirm('Confirm this worker has safely reached the assembly point?')) return;
+  try {
+    await apiFetch(`/company-admin/alerts/${alertId}/acknowledge/${workerId}`, {
+      method: 'POST',
+      body: JSON.stringify({ acknowledged_by_name: 'Company Admin' }),
+    });
+    showToast('Worker acknowledged by admin');
+    refreshAckModal();
+    loadAlerts();
+    loadDashboard();
+  } catch (err) {
+    showToast(err.message || 'Failed to acknowledge');
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+async function loadEvacuationPlan() {
+  try {
+    const data = await apiFetch('/company-admin/evacuation-plan');
+    const el = document.getElementById('evac-content');
+    const hasPlan = !!(data.evacuation_plan || data.assembly_point || data.has_file);
+    if (!hasPlan) {
+      el.innerHTML = `<div class="empty" style="padding:32px"><div class="icon">🚨</div><h3>No evacuation plan yet</h3><p>Your Factory Alert super admin has not uploaded an evacuation plan for this building. Contact them to add one — you cannot set it from here.</p></div>`;
+    } else {
+      const fileBlock = data.has_file && data.evacuation_plan_file_url
+        ? `<div class="upload-current" style="margin-bottom:16px"><span>📎 ${esc(data.evacuation_plan_file_name || 'Uploaded plan')}</span><a href="${API}${data.evacuation_plan_file_url}" target="_blank">View / Download</a></div>`
+        : '';
+      el.innerHTML = `
+        <div class="evac-readonly" style="margin-bottom:20px">🔒 View only — contact Factory Alert super admin to update or remove this plan</div>
+        <h3>🚨 Building Evacuation Plan</h3>
+        <p style="color:var(--muted);font-size:14px;margin-bottom:20px">${esc(data.building_name || data.company_name)}</p>
+        ${data.assembly_point ? `<div class="evac-assembly"><div class="label">Assembly / Muster Point</div><div class="value">📍 ${esc(data.assembly_point)}</div></div>` : ''}
+        ${fileBlock}
+        ${data.evacuation_plan ? `<div class="evac-body">${esc(data.evacuation_plan)}</div>` : (!data.has_file ? '<p style="color:var(--muted)">Assembly point configured. Full plan details pending from super admin.</p>' : '')}`;
+    }
+  } catch {
+    document.getElementById('evac-content').innerHTML = `<div class="empty"><p>Could not load evacuation plan.</p></div>`;
+  }
+}
+
+async function loadEmergencyContacts() {
+  const el = document.getElementById('contacts-list');
+  if (!el) return;
+  try {
+    const data = await apiFetch('/company-admin/emergency-contacts');
+    emergencyContacts = data.contacts || [];
+    if (!emergencyContacts.length) {
+      el.innerHTML = `<div class="empty" style="padding:24px"><div class="icon">📞</div><p style="color:var(--muted);font-size:14px">No emergency numbers yet. Add Security, Fire, or site manager contacts.</p></div>`;
+      return;
+    }
+    el.innerHTML = emergencyContacts.map(c => `
+      <div class="contact-row">
+        <div class="contact-info">
+          <div class="label">${esc(c.label)}</div>
+          <div class="phone">${esc(c.phone)}</div>
+        </div>
+        <div class="contact-actions">
+          <button class="btn btn-secondary btn-sm" onclick="editContact('${c.id}')">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteContact('${c.id}')">Delete</button>
+        </div>
+      </div>`).join('');
+  } catch {
+    el.innerHTML = `<div class="empty"><p>Could not load emergency contacts.</p></div>`;
+  }
+}
+
+function openContactModal(id, label, phone) {
+  document.getElementById('contact-id').value = id || '';
+  document.getElementById('contact-label').value = label || '';
+  document.getElementById('contact-phone').value = phone || '';
+  document.getElementById('contact-modal-title').textContent = id ? 'Edit Emergency Number' : 'Add Emergency Number';
+  document.getElementById('contact-error').className = 'alert';
+  document.getElementById('contact-modal').classList.add('open');
+}
+
+function editContact(id) {
+  const c = emergencyContacts.find(x => x.id === id);
+  if (!c) return;
+  openContactModal(c.id, c.label, c.phone);
+}
+
+function closeContactModal() {
+  document.getElementById('contact-modal').classList.remove('open');
+  document.getElementById('contact-id').value = '';
+  document.getElementById('contact-label').value = '';
+  document.getElementById('contact-phone').value = '';
+}
+
+async function saveContact() {
+  const id = document.getElementById('contact-id').value;
+  const label = document.getElementById('contact-label').value.trim();
+  const phone = document.getElementById('contact-phone').value.trim();
+  const errEl = document.getElementById('contact-error');
+  errEl.className = 'alert';
+  if (!label || !phone) {
+    errEl.className = 'alert error';
+    errEl.textContent = 'Label and phone number are required.';
+    return;
+  }
+  try {
+    if (id) {
+      await apiFetch(`/company-admin/emergency-contacts/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ label, phone }),
+      });
+      showToast('Contact updated');
+    } else {
+      await apiFetch('/company-admin/emergency-contacts', {
+        method: 'POST',
+        body: JSON.stringify({ label, phone }),
+      });
+      showToast('Contact added');
+    }
+    closeContactModal();
+    loadEmergencyContacts();
+  } catch (err) {
+    errEl.className = 'alert error';
+    errEl.textContent = err.message || 'Failed to save';
+  }
+}
+
+async function deleteContact(id) {
+  if (!confirm('Remove this emergency number? Workers will no longer see it on the alert screen.')) return;
+  try {
+    await apiFetch(`/company-admin/emergency-contacts/${id}`, { method: 'DELETE' });
+    showToast('Contact removed');
+    loadEmergencyContacts();
+  } catch (err) {
+    showToast(err.message || 'Failed to delete');
+  }
+}
+
+async function loadZones() {
+  try {
+    const data = await apiFetch('/company-admin/zones');
+    const zones = data.zones || [];
+    document.getElementById('zones-grid').innerHTML = zones.length
+      ? zones.map(z => `<div class="zone-card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div><h4>${esc(z.name)}</h4><div class="meta">Floor: ${esc(z.floor)} · ${z.zone_type}</div></div>
+            <button class="btn btn-danger btn-sm" onclick="deleteZone('${z.id}')">Delete</button>
+          </div>
+          ${z.description?`<p style="font-size:13px;color:var(--muted);margin-top:10px">${esc(z.description)}</p>`:''}
+          ${z.has_fire_extinguisher?`<div style="font-size:13px;margin-top:8px">🧯 ${esc(z.extinguisher_location||'Extinguisher present')}</div>`:''}
+          ${z.has_emergency_exit?`<div style="font-size:13px;margin-top:4px">🚪 ${esc(z.exit_direction||'Exit present')}</div>`:''}
+        </div>`).join('')
+      : `<div class="empty" style="grid-column:1/-1"><div class="icon">🗺️</div><h3>No zones yet</h3><p>Add zones like Welding Bay, Floor 1, Warehouse so workers know exits and extinguishers.</p></div>`;
+  } catch {}
+}
+
+async function resolveAlert(id) {
+  await apiFetch(`/company-admin/alerts/${id}/resolve`, { method: 'PATCH', body: JSON.stringify({ resolved_by_name: 'Admin' }) });
+  loadDashboard(); loadAlerts();
+}
+
+async function removeWorker(id, name) {
+  if (!confirm(`Remove ${name}? They will no longer receive alerts.`)) return;
+  await apiFetch(`/company-admin/workers/${id}`, { method: 'DELETE' });
+  loadWorkers();
+}
+
+async function deleteZone(id) {
+  if (!confirm('Delete this zone?')) return;
+  await apiFetch(`/company-admin/zones/${id}`, { method: 'DELETE' });
+  loadZones();
+}
+
+function openZoneModal() { document.getElementById('zone-modal').classList.add('open'); }
+function closeZoneModal() {
+  document.getElementById('zone-modal').classList.remove('open');
+  ['z-name','z-floor','z-desc','z-ext-loc','z-exit-dir'].forEach(id => document.getElementById(id).value = '');
+  ['z-extinguisher','z-exit'].forEach(id => document.getElementById(id).checked = false);
+  document.getElementById('z-ext-fields').style.display = 'none';
+  document.getElementById('z-exit-fields').style.display = 'none';
+}
+
+async function createZone() {
+  const name = document.getElementById('z-name').value.trim();
+  const errEl = document.getElementById('zone-error');
+  errEl.className = 'alert';
+  if (!name) { errEl.className = 'alert error'; errEl.textContent = 'Zone name required.'; return; }
+  try {
+    await apiFetch('/company-admin/zones', { method: 'POST', body: JSON.stringify({
+      name, floor: document.getElementById('z-floor').value.trim(),
+      zone_type: document.getElementById('z-type').value,
+      description: document.getElementById('z-desc').value.trim(),
+      has_fire_extinguisher: document.getElementById('z-extinguisher').checked,
+      extinguisher_location: document.getElementById('z-ext-loc').value.trim(),
+      has_emergency_exit: document.getElementById('z-exit').checked,
+      exit_direction: document.getElementById('z-exit-dir').value.trim(),
+    })});
+    closeZoneModal(); loadZones();
+  } catch (err) { errEl.className = 'alert error'; errEl.textContent = err.message; }
+}
+
+function toggleExt() { document.getElementById('z-ext-fields').style.display = document.getElementById('z-extinguisher').checked ? 'block' : 'none'; }
+function toggleExit() { document.getElementById('z-exit-fields').style.display = document.getElementById('z-exit').checked ? 'block' : 'none'; }
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`page-${name}`).classList.add('active');
+  document.querySelector(`.nav-item[data-page="${name}"]`)?.classList.add('active');
+  document.getElementById('page-title').textContent = titles[name];
+  ({ workers: loadWorkers, dashboard: loadDashboard, alerts: loadAlerts, zones: loadZones, evacuation: loadEvacuationPlan, 'emergency-contacts': loadEmergencyContacts })[name]?.();
+}
+
+function alertBadge(type) {
+  const icons = { fire:'🔥', medical:'🚑', evacuation:'🚨', security:'🔒', general:'⚠️' };
+  return `<span class="badge badge-${type}">${icons[type]||'⚠️'} ${type}</span>`;
+}
+
+function timeAgo(ts) {
+  const d = (Date.now() - new Date(ts)) / 1000;
+  if (d < 60) return 'Just now';
+  if (d < 3600) return `${Math.floor(d/60)}m ago`;
+  if (d < 86400) return `${Math.floor(d/3600)}h ago`;
+  return new Date(ts).toLocaleDateString();
+}
+
+function copyCode() {
+  navigator.clipboard.writeText(companyCode).then(() => {
+    const t = document.getElementById('toast');
+    t.textContent = 'Building code copied!';
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+  });
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+</script>
+</body>
+</html>
