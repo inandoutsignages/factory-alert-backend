@@ -7,7 +7,6 @@ dist/
 # Secrets — never commit
 .env
 .env.*
-!.env.example
 
 # User uploads
 uploads/

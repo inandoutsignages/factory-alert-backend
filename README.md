@@ -16,7 +16,7 @@ package.json                Root scripts for Railway deploy
 ```bash
 cd backend
 npm install
-cp .env.example .env   # then fill in your values
+# create backend/.env with your values (see below)
 npm run dev
 ```
 
