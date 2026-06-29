@@ -35,8 +35,8 @@ app.use('/super-admin', superAdminRoutes);
 app.use('/company-admin', companyAdminRoutes);
 app.use('/workers', workerRoutes);
 
-// Admin panel UIs (open in browser while backend runs)
-const panelsRoot = path.join(__dirname, '../..');
+// Admin panel UIs (bundled under backend/panels for Railway deploy)
+const panelsRoot = path.join(__dirname, '../panels');
 app.use('/panels/super-admin', express.static(path.join(panelsRoot, 'super-admin')));
 app.use('/panels/company-admin', express.static(path.join(panelsRoot, 'company-admin')));
 app.get('/panels', (_req, res) => {

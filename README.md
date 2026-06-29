@@ -5,9 +5,10 @@ Factory Alert API server, Super Admin panel, and Company Admin panel.
 ## Structure
 
 ```
-backend/          Node.js API (Express + Supabase PostgreSQL)
-super-admin/      Super Admin web panel
-company-admin/    Company Admin web panel
+backend/                    Node.js API (Express + Supabase PostgreSQL)
+backend/panels/super-admin/ Super Admin web panel
+backend/panels/company-admin/ Company Admin web panel
+package.json                Root scripts for Railway deploy
 ```
 
 ## Quick start

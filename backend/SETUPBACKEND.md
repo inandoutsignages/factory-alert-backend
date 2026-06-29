@@ -10,19 +10,14 @@ Complete guide for the Node.js API, Super Admin panel, Company Admin panel, and 
 factory-alert-backend/
 ├── backend/                 ← API server (this folder)
 │   ├── src/
-│   │   ├── index.ts         ← Express app entry
-│   │   ├── db/schema.ts     ← SQL schema + in-memory store
-│   │   ├── middleware/auth.ts
-│   │   ├── routes/
-│   │   │   ├── superAdmin.ts
-│   │   │   ├── companyAdmin.ts
-│   │   │   └── workers.ts
-│   │   └── utils/evacuationFiles.ts
+│   ├── panels/
+│   │   ├── super-admin/     ← Super Admin web panel (HTML)
+│   │   └── company-admin/   ← Company Admin web panel (HTML)
 │   ├── uploads/             ← Evacuation plan file uploads
 │   ├── .env
 │   └── SETUPBACKEND.md      ← This file
-├── super-admin/             ← Super Admin web panel (HTML)
-└── company-admin/           ← Company Admin web panel (HTML)
+├── package.json             ← Root scripts for Railway
+└── docs/
 ```
 
 The React Native mobile app lives in a separate repo folder: `factory-alert-mobile-app/`.
