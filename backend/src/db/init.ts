@@ -8,7 +8,17 @@ export async function initDatabase(): Promise<void> {
   }
 
   const pool = getPool();
-  await pool.query(SQL_SCHEMA);
+  try {
+    await pool.query(SQL_SCHEMA);
+  } catch (err: unknown) {
+    const code = err && typeof err === 'object' && 'code' in err ? String((err as { code: string }).code) : '';
+    if (code === 'ENETUNREACH' || code === 'ETIMEDOUT' || code === 'ECONNREFUSED') {
+      console.error(
+        '[db] Cannot reach Supabase from this host. Replace DATABASE_URL with the Session pooler URI from Supabase → Project Settings → Database (not db.*.supabase.co direct connection).'
+      );
+    }
+    throw err;
+  }
   console.log('[db] Supabase/PostgreSQL connected — tables ready');
 }
 

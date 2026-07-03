@@ -278,13 +278,25 @@ Utility: `src/utils/evacuationFiles.ts`
 
 ---
 
-## Deploy to production (Railway example)
+## Deploy to production (Render)
 
-1. Push `factory-alert-backend` to GitHub
-2. Create Railway project → deploy `backend` folder
-3. Set environment variables (same as `.env`)
-4. Note the public URL (e.g. `https://factory-alert.up.railway.app`)
-5. Update `API` in both HTML panels and `API_BASE` in the mobile app
+The repo has a `render.yaml` blueprint at the root.
+
+1. Push repo to GitHub (already done).
+2. Go to [render.com](https://render.com) → **New** → **Blueprint**.
+3. Connect the `alert-app-backend` GitHub repo → Render reads `render.yaml`.
+4. Add environment variables (marked `sync: false`, so Render prompts for them):
+   - `MASTER_PASSWORD`
+   - `DATABASE_URL` (Supabase **Session pooler** URL)
+   - `FIREBASE_PROJECT_ID`
+   - `FIREBASE_CLIENT_EMAIL`
+   - `FIREBASE_PRIVATE_KEY`
+5. Click **Apply** → wait for build + deploy.
+6. Note the public URL (e.g. `https://alert-app-backend.onrender.com`).
+7. Verify: open `https://<your-app>.onrender.com/health` → `"database": "connected"`.
+8. Set that URL as `EXPO_PUBLIC_API_URL` in `eas.json` production profile, then build the APK.
+
+**Note:** Render's free tier sleeps after ~15 min idle; first request after sleep takes ~30s to wake. Fine for a demo.
 
 ---
 
