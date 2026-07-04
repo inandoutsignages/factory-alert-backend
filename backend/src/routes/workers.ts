@@ -397,12 +397,16 @@ async function sendFirebaseAlert(
       notification: { title, body },
       android: {
         priority: 'high' as const,
+        ttl: 86400000,
         notification: {
           channelId: 'factory_alerts',
           priority: 'max' as const,
+          visibility: 'public' as const,
+          sticky: true,
           defaultVibrateTimings: false,
-          vibrateTimingsMillis: [0, 500, 200, 500, 200, 500, 200, 500, 200, 500],
-          sound: 'alarm',
+          vibrateTimingsMillis: [0, 1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000],
+          defaultSound: true,
+          tag: `alert_${alert.id}`,
         },
       },
       apns: {
@@ -416,18 +420,21 @@ async function sendFirebaseAlert(
         },
       },
       data: {
-        alert_id: alert.id,
-        alert_type: alert.alert_type,
-        zone_name: alert.zone_name,
-        triggered_by: alert.triggered_by_name,
-        company_code: alert.company_code,
-        nearest_exit: zone?.exit_direction || '',
-        extinguisher: zone?.extinguisher_location || '',
+        alert_id: String(alert.id),
+        alert_type: String(alert.alert_type),
+        zone_name: String(alert.zone_name || ''),
+        triggered_by: String(alert.triggered_by_name || ''),
+        company_code: String(alert.company_code || ''),
+        nearest_exit: String(zone?.exit_direction || ''),
+        extinguisher: String(zone?.extinguisher_location || ''),
       },
       tokens,
     };
 
     const response = await admin.messaging().sendEachForMulticast(message);
+    response.responses.forEach((r: { success: boolean; error?: { message: string } }, i: number) => {
+      if (!r.success) console.error(`[FCM] Token ${i} failed:`, r.error?.message);
+    });
     return { success: true, sent: response.successCount, error: '' };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'FCM error';
