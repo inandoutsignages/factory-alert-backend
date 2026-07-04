@@ -398,13 +398,15 @@ async function sendFirebaseAlert(
       android: {
         priority: 'high' as const,
         ttl: 86400000,
+        directBootOk: true,
         notification: {
           channelId: 'factory_alerts',
           priority: 'max' as const,
           visibility: 'public' as const,
           sticky: true,
           defaultVibrateTimings: false,
-          vibrateTimingsMillis: [0, 1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000],
+          vibrateTimingsMillis: [0, 1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000],
+          sound: 'alarm',
           defaultSound: true,
           tag: `alert_${alert.id}`,
         },
