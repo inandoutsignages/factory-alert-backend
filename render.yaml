@@ -4,10 +4,13 @@ services:
     runtime: node
     plan: free
     region: singapore
-    buildCommand: npm install && npm run build
+    rootDir: backend
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
     healthCheckPath: /health
     envVars:
+      - key: NODE_VERSION
+        value: "22"
       - key: NODE_ENV
         value: production
       - key: MASTER_PASSWORD
