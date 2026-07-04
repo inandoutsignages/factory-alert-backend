@@ -393,35 +393,11 @@ async function sendFirebaseAlert(
     const tokens = workers.map(w => w.fcm_token).filter(Boolean);
     if (tokens.length === 0) return { success: true, sent: 0, error: '' };
 
+    // Data-only high priority — triggers FirebaseMessagingService even when app is CLOSED
     const message = {
-      notification: { title, body },
-      android: {
-        priority: 'high' as const,
-        ttl: 86400000,
-        directBootOk: true,
-        notification: {
-          channelId: 'factory_alerts',
-          priority: 'max' as const,
-          visibility: 'public' as const,
-          sticky: true,
-          defaultVibrateTimings: false,
-          vibrateTimingsMillis: [0, 1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000],
-          sound: 'alarm',
-          defaultSound: true,
-          tag: `alert_${alert.id}`,
-        },
-      },
-      apns: {
-        payload: {
-          aps: {
-            sound: 'alarm.wav',
-            badge: 1,
-            'content-available': 1,
-            'interruption-level': 'critical',
-          },
-        },
-      },
       data: {
+        title,
+        body,
         alert_id: String(alert.id),
         alert_type: String(alert.alert_type),
         zone_name: String(alert.zone_name || ''),
@@ -430,6 +406,22 @@ async function sendFirebaseAlert(
         nearest_exit: String(zone?.exit_direction || ''),
         extinguisher: String(zone?.extinguisher_location || ''),
       },
+      android: {
+        priority: 'high' as const,
+        ttl: 86400000,
+        directBootOk: true,
+      },
+      apns: {
+        headers: { 'apns-priority': '10' },
+        payload: {
+          aps: {
+            alert: { title, body },
+            sound: 'default',
+            badge: 1,
+            'content-available': 1,
+          },
+        },
+      },
       tokens,
     };
 
@@ -437,6 +429,7 @@ async function sendFirebaseAlert(
     response.responses.forEach((r: { success: boolean; error?: { message: string } }, i: number) => {
       if (!r.success) console.error(`[FCM] Token ${i} failed:`, r.error?.message);
     });
+    console.log(`[FCM] Emergency data push sent to ${response.successCount}/${tokens.length} devices`);
     return { success: true, sent: response.successCount, error: '' };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'FCM error';
