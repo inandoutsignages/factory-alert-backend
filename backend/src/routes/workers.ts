@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { getMessaging } from 'firebase-admin/messaging';
 import * as store from '../db/store';
 import { authenticate, createSession, AuthRequest } from '../middleware/auth';
 import { evacPlanPayload } from '../utils/evacuationFiles';
@@ -295,6 +297,25 @@ function alertPushContent(
   return { title, body };
 }
 
+function getFirebasePrivateKey(): string {
+  let key = process.env.FIREBASE_PRIVATE_KEY!.trim();
+  if ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith("'") && key.endsWith("'"))) {
+    key = key.slice(1, -1);
+  }
+  return key.replace(/\\n/g, '\n');
+}
+
+function ensureFirebaseApp(): void {
+  if (getApps().length > 0) return;
+  initializeApp({
+    credential: cert({
+      projectId: process.env.FIREBASE_PROJECT_ID!,
+      privateKey: getFirebasePrivateKey(),
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL!,
+    }),
+  });
+}
+
 async function sendAlertPush(
   alert: { id: string; alert_type: string; zone_name: string; triggered_by_name: string; company_code: string },
   workers: { fcm_token: string }[],
@@ -429,16 +450,7 @@ async function sendFirebasePulse(
     return 0;
   }
 
-  const admin = require('firebase-admin');
-  if (!admin.apps.length) {
-    admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      }),
-    });
-  }
+  ensureFirebaseApp();
 
   const { title, body } = alertPushContent(alert, zone);
   const tokens = workers.map(w => w.fcm_token).filter(Boolean);
@@ -463,8 +475,6 @@ async function sendFirebasePulse(
         channelId: 'factory_alerts',
         priority: 'max' as const,
         visibility: 'public' as const,
-        defaultVibrateTimings: false,
-        vibrateTimingsMillis: [0, 1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000],
         defaultSound: true,
         tag: `alert_${alert.id}_p${pulseIndex}`,
       },
@@ -472,7 +482,7 @@ async function sendFirebasePulse(
     tokens,
   };
 
-  const response = await admin.messaging().sendEachForMulticast(message);
+  const response = await getMessaging().sendEachForMulticast(message);
   if (!response?.responses) {
     console.error('[FCM] Unexpected response from Firebase');
     return 0;
