@@ -310,23 +310,32 @@ async function sendAlertPush(
     return { success: false, sent: 0, error: 'no_tokens' };
   }
 
-  // First pulse immediately (await so we know if delivery works)
   let sent = 0;
-  if (expoTokens.length > 0) {
-    sent += await sendExpoPulse(alert, expoTokens, zone, 0);
-    // Remaining pulses in background — keeps ringing when app is closed
-    scheduleExpoPulses(alert, expoTokens, zone, 1);
-  }
 
+  // FCM direct (Firebase Admin on Render) — works when app is closed
   if (fcmTokens.length > 0 && process.env.FIREBASE_PROJECT_ID) {
-    const fcmWorkers = workers.filter(w => fcmTokens.includes(w.fcm_token));
-    sent += await sendFirebasePulse(alert, fcmWorkers, zone, 0);
-    scheduleFirebasePulses(alert, fcmWorkers, zone, 1);
+    try {
+      const fcmWorkers = workers.filter(w => fcmTokens.includes(w.fcm_token));
+      sent += await sendFirebasePulse(alert, fcmWorkers, zone, 0);
+      scheduleFirebasePulses(alert, fcmWorkers, zone, 1);
+    } catch (err) {
+      console.error('[FCM] pulse 0 error:', err instanceof Error ? err.message : err);
+    }
   } else if (fcmTokens.length > 0) {
     console.warn('[Push] FCM tokens present but FIREBASE_PROJECT_ID not set on server');
   }
 
-  return { success: sent > 0, sent: sent || expoTokens.length + fcmTokens.length, error: sent > 0 ? '' : 'delivery_failed' };
+  // Expo Push only if FCM not configured (Expo needs FCM key uploaded at expo.dev)
+  if (sent === 0 && expoTokens.length > 0) {
+    try {
+      sent += await sendExpoPulse(alert, expoTokens, zone, 0);
+      scheduleExpoPulses(alert, expoTokens, zone, 1);
+    } catch (err) {
+      console.error('[Expo Push] pulse 0 error:', err instanceof Error ? err.message : err);
+    }
+  }
+
+  return { success: sent > 0, sent, error: sent > 0 ? '' : 'delivery_failed' };
 }
 
 function scheduleExpoPulses(
@@ -397,13 +406,12 @@ async function sendExpoPulse(
       },
       body: JSON.stringify(chunk),
     });
-    const data = await res.json() as { data?: { status: string; message?: string }[] };
-    if (data.data) {
-      data.data.forEach((r, idx) => {
-        if (r.status === 'ok') sent++;
-        else console.error(`[Expo Push] pulse ${pulseIndex} token ${idx} failed:`, r.message || r.status);
-      });
-    }
+    const data = await res.json() as { data?: { status: string; message?: string } | { status: string; message?: string }[] };
+    const results = Array.isArray(data.data) ? data.data : data.data ? [data.data] : [];
+    results.forEach((r, idx) => {
+      if (r.status === 'ok') sent++;
+      else console.error(`[Expo Push] pulse ${pulseIndex} token ${idx} failed:`, r.message || r.status);
+    });
   }
 
   console.log(`[Expo Push] pulse ${pulseIndex}: sent ${sent}/${tokens.length}`);
@@ -416,14 +424,17 @@ async function sendFirebasePulse(
   zone: { name?: string; exit_direction?: string; extinguisher_location?: string } | null,
   pulseIndex: number
 ): Promise<number> {
-  if (!process.env.FIREBASE_PROJECT_ID) return 0;
+  if (!process.env.FIREBASE_PROJECT_ID || !process.env.FIREBASE_PRIVATE_KEY || !process.env.FIREBASE_CLIENT_EMAIL) {
+    console.error('[FCM] Missing Firebase env vars on server');
+    return 0;
+  }
 
   const admin = require('firebase-admin');
   if (!admin.apps.length) {
     admin.initializeApp({
       credential: admin.credential.cert({
         projectId: process.env.FIREBASE_PROJECT_ID,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
         clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
       }),
     });
@@ -462,6 +473,10 @@ async function sendFirebasePulse(
   };
 
   const response = await admin.messaging().sendEachForMulticast(message);
+  if (!response?.responses) {
+    console.error('[FCM] Unexpected response from Firebase');
+    return 0;
+  }
   response.responses.forEach((r: { success: boolean; error?: { message: string } }, i: number) => {
     if (!r.success) console.error(`[FCM] pulse ${pulseIndex} token ${i}:`, r.error?.message);
   });
