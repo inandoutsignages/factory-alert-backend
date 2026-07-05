@@ -208,7 +208,6 @@ router.post('/alert', authenticate, async (req: AuthRequest, res: Response) => {
 
   let pushResult = { success: false, sent: 0, error: '' };
   try {
-    // Fire pushes immediately (don't wait for all pulses — they continue in background)
     pushResult = await sendAlertPush(alert, targetWorkers, zone);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Push failed';
@@ -333,14 +332,13 @@ async function sendAlertPush(
 
   let sent = 0;
 
-  // FCM direct (Firebase Admin on Render) — works when app is closed
+  // One push per alert — no repeat pulses (workers stop locally after 3× acknowledge)
   if (fcmTokens.length > 0 && process.env.FIREBASE_PROJECT_ID) {
     try {
       const fcmWorkers = workers.filter(w => fcmTokens.includes(w.fcm_token));
-      sent += await sendFirebasePulse(alert, fcmWorkers, zone, 0);
-      scheduleFirebasePulses(alert, fcmWorkers, zone, 1);
+      sent += await sendFirebasePush(alert, fcmWorkers, zone);
     } catch (err) {
-      console.error('[FCM] pulse 0 error:', err instanceof Error ? err.message : err);
+      console.error('[FCM] push error:', err instanceof Error ? err.message : err);
     }
   } else if (fcmTokens.length > 0) {
     console.warn('[Push] FCM tokens present but FIREBASE_PROJECT_ID not set on server');
@@ -349,52 +347,30 @@ async function sendAlertPush(
   // Expo Push only if FCM not configured (Expo needs FCM key uploaded at expo.dev)
   if (sent === 0 && expoTokens.length > 0) {
     try {
-      sent += await sendExpoPulse(alert, expoTokens, zone, 0);
-      scheduleExpoPulses(alert, expoTokens, zone, 1);
+      sent += await sendExpoPush(alert, expoTokens, zone);
     } catch (err) {
-      console.error('[Expo Push] pulse 0 error:', err instanceof Error ? err.message : err);
+      console.error('[Expo Push] push error:', err instanceof Error ? err.message : err);
     }
   }
 
   return { success: sent > 0, sent, error: sent > 0 ? '' : 'delivery_failed' };
 }
 
-function scheduleExpoPulses(
-  alert: { id: string; alert_type: string; zone_name: string; triggered_by_name: string; company_code: string },
-  tokens: string[],
-  zone: { name?: string } | null,
-  startPulse: number
-) {
-  for (let pulse = startPulse; pulse < 6; pulse++) {
-    setTimeout(() => {
-      sendExpoPulse(alert, tokens, zone, pulse).catch(err =>
-        console.error(`[Expo Push] pulse ${pulse} error:`, err)
-      );
-    }, pulse * 3000);
-  }
+async function isAlertStillActive(alertId: string, companyCode: string): Promise<boolean> {
+  const alert = await store.findAlert(alertId, companyCode);
+  return !!alert && alert.status === 'active';
 }
 
-function scheduleFirebasePulses(
-  alert: { id: string; alert_type: string; zone_name: string; triggered_by_name: string; company_code: string },
-  workers: { fcm_token: string }[],
-  zone: { name?: string; exit_direction?: string; extinguisher_location?: string } | null,
-  startPulse: number
-) {
-  for (let pulse = startPulse; pulse < 6; pulse++) {
-    setTimeout(() => {
-      sendFirebasePulse(alert, workers, zone, pulse).catch(err =>
-        console.error(`[FCM] pulse ${pulse} error:`, err)
-      );
-    }, pulse * 3000);
-  }
-}
-
-async function sendExpoPulse(
+async function sendExpoPush(
   alert: { id: string; alert_type: string; zone_name: string; triggered_by_name: string; company_code: string },
   tokens: string[],
-  zone: { name?: string } | null,
-  pulseIndex: number
+  zone: { name?: string } | null
 ): Promise<number> {
+  if (!(await isAlertStillActive(alert.id, alert.company_code))) {
+    console.log(`[Expo Push] Skipped — alert ${alert.id} no longer active`);
+    return 0;
+  }
+
   const { title, body } = alertPushContent(alert, zone);
 
   const messages = tokens.map(to => ({
@@ -411,7 +387,6 @@ async function sendExpoPulse(
       zone_name: String(alert.zone_name || ''),
       triggered_by: String(alert.triggered_by_name || ''),
       company_code: String(alert.company_code || ''),
-      pulse: String(pulseIndex),
     },
   }));
 
@@ -431,20 +406,24 @@ async function sendExpoPulse(
     const results = Array.isArray(data.data) ? data.data : data.data ? [data.data] : [];
     results.forEach((r, idx) => {
       if (r.status === 'ok') sent++;
-      else console.error(`[Expo Push] pulse ${pulseIndex} token ${idx} failed:`, r.message || r.status);
+      else console.error(`[Expo Push] token ${idx} failed:`, r.message || r.status);
     });
   }
 
-  console.log(`[Expo Push] pulse ${pulseIndex}: sent ${sent}/${tokens.length}`);
+  console.log(`[Expo Push] sent ${sent}/${tokens.length} for alert ${alert.id}`);
   return sent;
 }
 
-async function sendFirebasePulse(
+async function sendFirebasePush(
   alert: { id: string; alert_type: string; zone_name: string; triggered_by_name: string; company_code: string },
   workers: { fcm_token: string }[],
-  zone: { name?: string; exit_direction?: string; extinguisher_location?: string } | null,
-  pulseIndex: number
+  zone: { name?: string; exit_direction?: string; extinguisher_location?: string } | null
 ): Promise<number> {
+  if (!(await isAlertStillActive(alert.id, alert.company_code))) {
+    console.log(`[FCM] Skipped — alert ${alert.id} no longer active`);
+    return 0;
+  }
+
   if (!process.env.FIREBASE_PROJECT_ID || !process.env.FIREBASE_PRIVATE_KEY || !process.env.FIREBASE_CLIENT_EMAIL) {
     console.error('[FCM] Missing Firebase env vars on server');
     return 0;
@@ -466,7 +445,6 @@ async function sendFirebasePulse(
       company_code: String(alert.company_code || ''),
       nearest_exit: String(zone?.exit_direction || ''),
       extinguisher: String(zone?.extinguisher_location || ''),
-      pulse: String(pulseIndex),
     },
     android: {
       priority: 'high' as const,
@@ -476,7 +454,7 @@ async function sendFirebasePulse(
         priority: 'max' as const,
         visibility: 'public' as const,
         defaultSound: true,
-        tag: `alert_${alert.id}_p${pulseIndex}`,
+        tag: `alert_${alert.id}`,
       },
     },
     tokens,
@@ -488,9 +466,9 @@ async function sendFirebasePulse(
     return 0;
   }
   response.responses.forEach((r: { success: boolean; error?: { message: string } }, i: number) => {
-    if (!r.success) console.error(`[FCM] pulse ${pulseIndex} token ${i}:`, r.error?.message);
+    if (!r.success) console.error(`[FCM] token ${i}:`, r.error?.message);
   });
-  console.log(`[FCM] pulse ${pulseIndex}: sent ${response.successCount}/${tokens.length}`);
+  console.log(`[FCM] sent ${response.successCount}/${tokens.length} for alert ${alert.id}`);
   return response.successCount;
 }
 
