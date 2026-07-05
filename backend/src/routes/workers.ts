@@ -206,6 +206,7 @@ router.post('/alert', authenticate, async (req: AuthRequest, res: Response) => {
 
   let pushResult = { success: false, sent: 0, error: '' };
   try {
+    // Fire pushes immediately (don't wait for all pulses — they continue in background)
     pushResult = await sendAlertPush(alert, targetWorkers, zone);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Push failed';
@@ -279,6 +280,21 @@ router.get('/alerts', authenticate, async (req: AuthRequest, res: Response) => {
 
 // ─── Push notification helpers ───────────────────────────────────────────────
 
+function alertPushContent(
+  alert: { alert_type: string; zone_name: string; triggered_by_name: string },
+  zone: { name?: string; exit_direction?: string } | null
+) {
+  const alertEmojis: Record<string, string> = {
+    fire: '🔥', medical: '🚑', evacuation: '🚨', security: '🔒', general: '⚠️',
+  };
+  const emoji = alertEmojis[alert.alert_type] || '⚠️';
+  const title = `${emoji} ${alert.alert_type.toUpperCase()} ALERT`;
+  const body = zone
+    ? `${alert.triggered_by_name} at ${zone.name}${zone.exit_direction ? ` — Exit: ${zone.exit_direction}` : ''}`
+    : `${alert.triggered_by_name} triggered an emergency alert`;
+  return { title, body };
+}
+
 async function sendAlertPush(
   alert: { id: string; alert_type: string; zone_name: string; triggered_by_name: string; company_code: string },
   workers: { fcm_token: string }[],
@@ -287,38 +303,69 @@ async function sendAlertPush(
   const expoTokens = workers.map(w => w.fcm_token).filter((t: string) => t?.startsWith('ExponentPushToken'));
   const fcmTokens = workers.map(w => w.fcm_token).filter((t: string) => t && !t.startsWith('ExponentPushToken'));
 
-  let sent = 0;
+  console.log(`[Push] Alert ${alert.id}: ${expoTokens.length} Expo tokens, ${fcmTokens.length} FCM tokens, ${workers.length - expoTokens.length - fcmTokens.length} missing`);
 
+  if (expoTokens.length === 0 && fcmTokens.length === 0) {
+    console.warn('[Push] NO push tokens registered — workers must open app and allow notifications');
+    return { success: false, sent: 0, error: 'no_tokens' };
+  }
+
+  // First pulse immediately (await so we know if delivery works)
+  let sent = 0;
   if (expoTokens.length > 0) {
-    const expoResult = await sendExpoPush(alert, expoTokens, zone);
-    sent += expoResult.sent;
+    sent += await sendExpoPulse(alert, expoTokens, zone, 0);
+    // Remaining pulses in background — keeps ringing when app is closed
+    scheduleExpoPulses(alert, expoTokens, zone, 1);
   }
 
   if (fcmTokens.length > 0 && process.env.FIREBASE_PROJECT_ID) {
-    const fcmResult = await sendFirebaseAlert(alert, workers.filter(w => fcmTokens.includes(w.fcm_token)), zone);
-    sent += fcmResult.sent;
+    const fcmWorkers = workers.filter(w => fcmTokens.includes(w.fcm_token));
+    sent += await sendFirebasePulse(alert, fcmWorkers, zone, 0);
+    scheduleFirebasePulses(alert, fcmWorkers, zone, 1);
+  } else if (fcmTokens.length > 0) {
+    console.warn('[Push] FCM tokens present but FIREBASE_PROJECT_ID not set on server');
   }
 
-  if (expoTokens.length === 0 && fcmTokens.length === 0) {
-    console.log(`[DEV] No push tokens — ${workers.length} workers will get alert via app polling`);
-  }
-
-  return { success: true, sent: sent || workers.length, error: '' };
+  return { success: sent > 0, sent: sent || expoTokens.length + fcmTokens.length, error: sent > 0 ? '' : 'delivery_failed' };
 }
 
-async function sendExpoPush(
+function scheduleExpoPulses(
   alert: { id: string; alert_type: string; zone_name: string; triggered_by_name: string; company_code: string },
   tokens: string[],
-  zone: { name?: string } | null
-): Promise<{ sent: number }> {
-  const alertEmojis: Record<string, string> = {
-    fire: '🔥', medical: '🚑', evacuation: '🚨', security: '🔒', general: '⚠️',
-  };
-  const emoji = alertEmojis[alert.alert_type] || '⚠️';
-  const title = `${emoji} ${alert.alert_type.toUpperCase()} ALERT`;
-  const body = zone
-    ? `${alert.triggered_by_name} at ${zone.name}`
-    : `${alert.triggered_by_name} triggered an emergency alert`;
+  zone: { name?: string } | null,
+  startPulse: number
+) {
+  for (let pulse = startPulse; pulse < 6; pulse++) {
+    setTimeout(() => {
+      sendExpoPulse(alert, tokens, zone, pulse).catch(err =>
+        console.error(`[Expo Push] pulse ${pulse} error:`, err)
+      );
+    }, pulse * 3000);
+  }
+}
+
+function scheduleFirebasePulses(
+  alert: { id: string; alert_type: string; zone_name: string; triggered_by_name: string; company_code: string },
+  workers: { fcm_token: string }[],
+  zone: { name?: string; exit_direction?: string; extinguisher_location?: string } | null,
+  startPulse: number
+) {
+  for (let pulse = startPulse; pulse < 6; pulse++) {
+    setTimeout(() => {
+      sendFirebasePulse(alert, workers, zone, pulse).catch(err =>
+        console.error(`[FCM] pulse ${pulse} error:`, err)
+      );
+    }, pulse * 3000);
+  }
+}
+
+async function sendExpoPulse(
+  alert: { id: string; alert_type: string; zone_name: string; triggered_by_name: string; company_code: string },
+  tokens: string[],
+  zone: { name?: string } | null,
+  pulseIndex: number
+): Promise<number> {
+  const { title, body } = alertPushContent(alert, zone);
 
   const messages = tokens.map(to => ({
     to,
@@ -327,12 +374,14 @@ async function sendExpoPush(
     sound: 'default',
     priority: 'high',
     channelId: 'factory_alerts',
+    ttl: 86400,
     data: {
-      alert_id: alert.id,
-      alert_type: alert.alert_type,
-      zone_name: alert.zone_name,
-      triggered_by: alert.triggered_by_name,
-      company_code: alert.company_code,
+      alert_id: String(alert.id),
+      alert_type: String(alert.alert_type),
+      zone_name: String(alert.zone_name || ''),
+      triggered_by: String(alert.triggered_by_name || ''),
+      company_code: String(alert.company_code || ''),
+      pulse: String(pulseIndex),
     },
   }));
 
@@ -348,52 +397,45 @@ async function sendExpoPush(
       },
       body: JSON.stringify(chunk),
     });
-    const data = await res.json() as { data?: { status: string }[] };
+    const data = await res.json() as { data?: { status: string; message?: string }[] };
     if (data.data) {
-      sent += data.data.filter(r => r.status === 'ok').length;
-    }
-  }
-
-  console.log(`[Expo Push] Sent to ${sent}/${tokens.length} devices`);
-  return { sent };
-}
-
-async function sendFirebaseAlert(
-  alert: { id: string; alert_type: string; zone_name: string; triggered_by_name: string; company_code: string },
-  workers: { fcm_token: string }[],
-  zone: { name?: string; exit_direction?: string; extinguisher_location?: string } | null
-): Promise<{ success: boolean; sent: number; error: string }> {
-  if (!process.env.FIREBASE_PROJECT_ID) {
-    return { success: true, sent: 0, error: '' };
-  }
-
-  try {
-    const admin = require('firebase-admin');
-
-    if (!admin.apps.length) {
-      admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        }),
+      data.data.forEach((r, idx) => {
+        if (r.status === 'ok') sent++;
+        else console.error(`[Expo Push] pulse ${pulseIndex} token ${idx} failed:`, r.message || r.status);
       });
     }
+  }
 
-    const alertEmojis: Record<string, string> = {
-      fire: '🔥', medical: '🚑', evacuation: '🚨', security: '🔒', general: '⚠️',
-    };
+  console.log(`[Expo Push] pulse ${pulseIndex}: sent ${sent}/${tokens.length}`);
+  return sent;
+}
 
-    const emoji = alertEmojis[alert.alert_type] || '⚠️';
-    const title = `${emoji} ${alert.alert_type.toUpperCase()} ALERT`;
-    const body = zone
-      ? `${alert.triggered_by_name} triggered alert at ${zone.name}. ${zone.exit_direction ? `Exit: ${zone.exit_direction}` : ''}`
-      : `${alert.triggered_by_name} triggered an emergency alert.`;
+async function sendFirebasePulse(
+  alert: { id: string; alert_type: string; zone_name: string; triggered_by_name: string; company_code: string },
+  workers: { fcm_token: string }[],
+  zone: { name?: string; exit_direction?: string; extinguisher_location?: string } | null,
+  pulseIndex: number
+): Promise<number> {
+  if (!process.env.FIREBASE_PROJECT_ID) return 0;
 
-    const tokens = workers.map(w => w.fcm_token).filter(Boolean);
-    if (tokens.length === 0) return { success: true, sent: 0, error: '' };
+  const admin = require('firebase-admin');
+  if (!admin.apps.length) {
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      }),
+    });
+  }
 
-    const dataPayload = {
+  const { title, body } = alertPushContent(alert, zone);
+  const tokens = workers.map(w => w.fcm_token).filter(Boolean);
+  if (tokens.length === 0) return 0;
+
+  const message = {
+    notification: { title, body },
+    data: {
       alert_id: String(alert.id),
       alert_type: String(alert.alert_type),
       zone_name: String(alert.zone_name || ''),
@@ -401,55 +443,30 @@ async function sendFirebaseAlert(
       company_code: String(alert.company_code || ''),
       nearest_exit: String(zone?.exit_direction || ''),
       extinguisher: String(zone?.extinguisher_location || ''),
-    };
+      pulse: String(pulseIndex),
+    },
+    android: {
+      priority: 'high' as const,
+      ttl: 86400000,
+      notification: {
+        channelId: 'factory_alerts',
+        priority: 'max' as const,
+        visibility: 'public' as const,
+        defaultVibrateTimings: false,
+        vibrateTimingsMillis: [0, 1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000],
+        defaultSound: true,
+        tag: `alert_${alert.id}_p${pulseIndex}`,
+      },
+    },
+    tokens,
+  };
 
-    let totalSent = 0;
-    // Send 5 notification pulses — each rings/vibrates even when app is closed
-    for (let pulse = 0; pulse < 5; pulse++) {
-      if (pulse > 0) await new Promise(resolve => setTimeout(resolve, 3000));
-
-      const message = {
-        notification: { title, body },
-        data: dataPayload,
-        android: {
-          priority: 'high' as const,
-          ttl: 86400000,
-          notification: {
-            channelId: 'factory_alerts',
-            priority: 'max' as const,
-            visibility: 'public' as const,
-            defaultVibrateTimings: false,
-            vibrateTimingsMillis: [0, 1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000],
-            defaultSound: true,
-            tag: `alert_${alert.id}_p${pulse}`,
-          },
-        },
-        apns: {
-          headers: { 'apns-priority': '10' },
-          payload: {
-            aps: {
-              alert: { title, body },
-              sound: 'default',
-              badge: 1,
-            },
-          },
-        },
-        tokens,
-      };
-
-      const response = await admin.messaging().sendEachForMulticast(message);
-      response.responses.forEach((r: { success: boolean; error?: { message: string } }, i: number) => {
-        if (!r.success) console.error(`[FCM] pulse ${pulse} token ${i} failed:`, r.error?.message);
-      });
-      totalSent = Math.max(totalSent, response.successCount);
-    }
-
-    console.log(`[FCM] Emergency push sent (${totalSent}/${tokens.length} devices, 5 pulses)`);
-    return { success: true, sent: totalSent, error: '' };
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'FCM error';
-    return { success: false, sent: 0, error: message };
-  }
+  const response = await admin.messaging().sendEachForMulticast(message);
+  response.responses.forEach((r: { success: boolean; error?: { message: string } }, i: number) => {
+    if (!r.success) console.error(`[FCM] pulse ${pulseIndex} token ${i}:`, r.error?.message);
+  });
+  console.log(`[FCM] pulse ${pulseIndex}: sent ${response.successCount}/${tokens.length}`);
+  return response.successCount;
 }
 
 export default router;
