@@ -49,11 +49,13 @@ app.get('/panels', (_req, res) => {
 // Health check
 app.get('/health', async (_req, res) => {
   const dbOk = await checkDatabaseHealth();
+  const firebaseOk = !!(process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY);
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
     message: 'Factory Alert API is running',
     database: hasDatabase() ? (dbOk ? 'connected' : 'error') : 'in-memory',
+    push_notifications: firebaseOk ? 'firebase_configured' : 'firebase_missing',
   });
 });
 
@@ -71,20 +73,26 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
 async function start() {
   await initDatabase();
 
+  const firebaseOk = !!(process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY);
+  const dbMode = hasDatabase() ? 'supabase' : 'in-memory';
+
   app.listen(PORT, () => {
-    console.log(`\n🚨 Factory Alert API running on http://localhost:${PORT}`);
-    console.log(`\nEndpoints:`);
-    console.log(`  POST /super-admin/login          — Your login`);
-    console.log(`  POST /super-admin/companies       — Create a company`);
-    console.log(`  GET  /super-admin/companies       — List all companies`);
-    console.log(`  POST /company-admin/login         — Company admin login`);
-    console.log(`  GET  /company-admin/dashboard     — Company dashboard`);
-    console.log(`  POST /workers/join                — Worker joins`);
-    console.log(`  POST /workers/alert               — Trigger alert`);
-    console.log(`\nAdmin Panels (open in browser):`);
-    console.log(`  http://localhost:${PORT}/panels/super-admin/`);
-    console.log(`  http://localhost:${PORT}/panels/company-admin/`);
-    console.log(`\n`);
+    console.log('');
+    console.log('Factory Alert API started successfully');
+    console.log(`  Port:      ${PORT}`);
+    console.log(`  Database:  ${dbMode}`);
+    console.log(`  Firebase:  ${firebaseOk ? 'configured (push notifications enabled)' : 'MISSING — set FIREBASE_* env vars on Render'}`);
+    console.log(`  Password:  ${process.env.MASTER_PASSWORD ? 'set' : 'MISSING'}`);
+    console.log('');
+    console.log('Key endpoints:');
+    console.log('  GET  /health');
+    console.log('  POST /workers/join');
+    console.log('  POST /workers/alert');
+    console.log('');
+    console.log('Admin panels:');
+    console.log(`  /panels/super-admin/`);
+    console.log(`  /panels/company-admin/`);
+    console.log('');
   });
 }
 
