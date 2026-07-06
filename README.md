@@ -1,4 +1,4 @@
-# fire-alert-backend
+# factory-alert-backend
 
 Factory Alert API server, Super Admin panel, and Company Admin panel.
 
