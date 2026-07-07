@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Factory Alert — Company Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -268,11 +268,88 @@
   .badge-pending { background: rgba(245,158,11,0.12); color: var(--orange); }
   .badge-done { background: var(--accent-dim); color: var(--accent); }
 
-  @media (max-width: 900px) {
-    .sidebar { display: none; }
+  .topbar-left { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
+  .topbar-left h2 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .topbar-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .mobile-menu-btn {
+    display: none; width: 44px; height: 44px; padding: 0; font-size: 20px;
+    flex-shrink: 0; border-radius: 10px;
+  }
+  .sidebar-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65);
+    z-index: 45; backdrop-filter: blur(2px);
+  }
+  .sidebar-overlay.open { display: block; }
+
+  .table-scroll {
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+  .table-scroll table { min-width: 640px; }
+  .table-scroll .ack-table { min-width: 520px; }
+
+  /* Tablet */
+  @media (max-width: 1024px) {
+    .sidebar {
+      transform: translateX(-100%); transition: transform 0.25s ease;
+      width: min(280px, 88vw); box-shadow: none;
+    }
+    .sidebar.open { transform: translateX(0); box-shadow: 8px 0 40px rgba(0,0,0,0.45); }
     .main { margin-left: 0; }
+    .mobile-menu-btn { display: inline-flex; }
+    .content { padding: 24px 20px; max-width: none; }
+    .topbar { padding: 0 20px; }
     .stats { grid-template-columns: repeat(2, 1fr); }
+    .workers-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+    .zones-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+  }
+
+  /* Phone */
+  @media (max-width: 768px) {
+    .content { padding: 16px; }
+    .topbar { height: auto; min-height: 56px; padding: 10px 12px; padding-top: calc(10px + env(safe-area-inset-top, 0)); flex-wrap: wrap; gap: 8px; }
+    .topbar h2 { font-size: 16px; max-width: 100%; }
+    .topbar-actions { width: 100%; justify-content: space-between; }
+    .live-banner { font-size: 12px; padding: 5px 10px; }
+    .login-card { padding: 28px 22px; }
+    .login-brand h1 { font-size: 22px; }
+    .stats { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 22px; }
+    .stat { padding: 16px; }
+    .stat .num { font-size: 26px; }
     .two-col { grid-template-columns: 1fr; }
+    .enroll-banner { flex-direction: column; align-items: stretch; padding: 20px; }
+    .enroll-steps { flex-direction: column; gap: 8px; }
+    .toolbar { flex-direction: column; align-items: stretch; }
+    .search-box { max-width: none; width: 100%; }
+    .workers-grid, .zones-grid { grid-template-columns: 1fr; }
+    .worker-card { padding: 16px; }
+    .worker-meta { flex-direction: column; align-items: flex-start; gap: 6px; }
+    .evac-card, .contacts-card { padding: 20px 18px; }
+    .evac-assembly .value { font-size: 16px; }
+    .contact-row { flex-direction: column; align-items: stretch; gap: 10px; }
+    .contact-actions { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
+    .contact-actions .btn { flex: 1; min-width: 120px; }
+    .modal { padding: 24px 18px; border-radius: 16px; max-height: 92vh; }
+    .modal.modal-wide { max-width: none; }
+    .modal-actions { flex-direction: column-reverse; align-items: stretch; }
+    .modal-actions .btn { width: 100%; }
+    .ack-summary { flex-direction: column; }
+    .ack-stat { min-width: 0; }
+    .toast { left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0)); }
+    .btn { min-height: 44px; }
+    .nav-item { min-height: 48px; }
+    .building-code-box .code { font-size: 12px; word-break: break-all; }
+  }
+
+  @media (max-width: 480px) {
+    #login-screen { padding: 16px; }
+    .stats { grid-template-columns: 1fr; }
+    .topbar-actions .btn-ghost { padding: 8px 12px; font-size: 12px; }
+  }
+
+  @media (min-width: 1400px) {
+    .content { max-width: 1320px; margin: 0 auto; }
+    .workers-grid { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
   }
 </style>
 </head>
@@ -334,11 +411,15 @@
         </div>
       </nav>
     </aside>
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 
     <div class="main">
       <header class="topbar">
-        <h2 id="page-title">Workers</h2>
-        <div style="display:flex;align-items:center;gap:12px">
+        <div class="topbar-left">
+          <button type="button" class="btn btn-ghost mobile-menu-btn" onclick="toggleSidebar()" aria-label="Open menu">☰</button>
+          <h2 id="page-title">Workers</h2>
+        </div>
+        <div class="topbar-actions">
           <div class="live-banner" id="live-banner"><span class="live-dot"></span> LIVE ALERT</div>
           <button class="btn btn-ghost btn-sm" onclick="logout()">Sign Out</button>
         </div>
@@ -384,18 +465,22 @@
 
           <div id="active-alerts-banner" class="alert-banner" style="display:none">
             <div class="alert-banner-header"><span class="live-dot"></span> Active Alerts — Immediate Attention</div>
+            <div class="table-scroll">
             <table>
               <thead><tr><th>Type</th><th>Location</th><th>Triggered By</th><th>Time</th><th></th></tr></thead>
               <tbody id="active-alerts-table"></tbody>
             </table>
+            </div>
           </div>
 
           <div class="card">
             <div style="padding:16px 20px;border-bottom:1px solid var(--border);font-weight:600">Recent Alerts</div>
+            <div class="table-scroll">
             <table>
               <thead><tr><th>Type</th><th>Location</th><th>By</th><th>Time</th><th>Status</th></tr></thead>
               <tbody id="recent-alerts-table"></tbody>
             </table>
+            </div>
           </div>
         </div>
 
@@ -406,10 +491,12 @@
             <button class="btn btn-secondary btn-sm" onclick="loadAlerts()">↻ Refresh</button>
           </div>
           <div class="card">
+            <div class="table-scroll">
             <table>
               <thead><tr><th>Type</th><th>Zone</th><th>Triggered By</th><th>Worker Ack</th><th>Admin Ack</th><th>Time</th><th>Status</th><th></th></tr></thead>
               <tbody id="alerts-table"></tbody>
             </table>
+            </div>
           </div>
         </div>
 
@@ -509,7 +596,8 @@
     <h3 id="ack-modal-title">Alert Acknowledgments</h3>
     <p id="ack-modal-sub">Worker must tap Acknowledge 3× on mobile after exiting. You then confirm each worker at assembly point.</p>
     <div id="ack-summary" class="ack-summary"></div>
-    <div class="card" style="overflow-x:auto">
+    <div class="card" style="padding:0;border:none;background:transparent">
+      <div class="table-scroll">
       <table class="ack-table">
         <thead>
           <tr>
@@ -520,6 +608,7 @@
         </thead>
         <tbody id="ack-table-body"></tbody>
       </table>
+      </div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeAckModal()">Close</button>
@@ -580,6 +669,17 @@ function logout() {
   clearInterval(refreshInterval);
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
+  closeSidebar();
+}
+
+function toggleSidebar() {
+  document.querySelector('.sidebar')?.classList.toggle('open');
+  document.getElementById('sidebar-overlay')?.classList.toggle('open');
+}
+
+function closeSidebar() {
+  document.querySelector('.sidebar')?.classList.remove('open');
+  document.getElementById('sidebar-overlay')?.classList.remove('open');
 }
 
 function showApp() {
@@ -965,6 +1065,7 @@ function toggleExt() { document.getElementById('z-ext-fields').style.display = d
 function toggleExit() { document.getElementById('z-exit-fields').style.display = document.getElementById('z-exit').checked ? 'block' : 'none'; }
 
 function showPage(name) {
+  closeSidebar();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById(`page-${name}`).classList.add('active');
