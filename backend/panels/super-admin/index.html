@@ -132,8 +132,25 @@
     color: var(--muted); margin-bottom: 4px; transition: all 0.15s;
   }
   .nav-item:hover { color: var(--text); background: var(--surface2); }
-  .nav-item.active { color: var(--text); background: var(--accent-dim); }
+  .nav-item.active {
+    color: var(--text); background: var(--accent-dim);
+    border-left: 3px solid var(--accent); padding-left: 11px;
+  }
   .nav-item.active .nav-icon { background: var(--accent); color: white; }
+  .nav-label {
+    font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.8px; padding: 8px 14px 10px; display: none;
+  }
+  .sidebar-header-row {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-header-row .sidebar-brand { border-bottom: none; flex: 1; }
+  .sidebar-close {
+    display: none; margin: 20px 16px 0 0; width: 36px; height: 36px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--surface2); color: var(--text);
+    font-size: 18px; cursor: pointer; flex-shrink: 0;
+  }
   .nav-icon {
     width: 32px; height: 32px; border-radius: 8px; background: var(--surface2);
     display: flex; align-items: center; justify-content: center; font-size: 15px;
@@ -153,7 +170,48 @@
     backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: space-between;
     padding: 0 32px; position: sticky; top: 0; z-index: 40;
   }
-  .topbar h2 { font-size: 18px; font-weight: 700; }
+  .topbar h2 { font-size: 18px; font-weight: 700; color: var(--accent); }
+  .page-kicker {
+    font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 1px; margin-bottom: 4px;
+  }
+  .system-health { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .system-health .optimal { color: var(--success); font-weight: 700; }
+  .topbar-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .mobile-app-header {
+    display: none; width: 100%; align-items: center; justify-content: space-between;
+    padding: 12px 16px; padding-top: calc(12px + env(safe-area-inset-top, 0));
+    border-bottom: 1px solid var(--border); background: rgba(8,8,12,0.95);
+    backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 41; gap: 12px;
+  }
+  .mobile-brand { display: flex; align-items: center; gap: 10px; flex: 1; justify-content: center; }
+  .mobile-brand-icon {
+    width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--accent), var(--orange)); font-size: 18px;
+  }
+  .mobile-brand-text { font-size: 16px; font-weight: 800; color: var(--accent); letter-spacing: -0.3px; }
+  .mobile-page-head { margin-bottom: 20px; width: 100%; }
+  .mobile-page-head h2 { font-size: 28px; font-weight: 800; color: var(--text); line-height: 1.1; }
+  .mobile-page-head .page-kicker { margin-bottom: 6px; }
+  .desktop-page-head { margin-bottom: 0; }
+  .desktop-only { display: block; }
+  .mobile-only { display: none; }
+  .desktop-table-wrap { display: block; width: 100%; }
+  .mobile-cards-wrap { display: none; width: 100%; }
+  .mobile-company-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 16px; cursor: pointer; width: 100%;
+  }
+  .mobile-company-card .m-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
+  .mobile-company-card .m-name { font-size: 16px; font-weight: 700; }
+  .mobile-company-card .m-building { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .mobile-company-card .m-code {
+    font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--accent);
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; margin-bottom: 10px; word-break: break-all;
+  }
+  .mobile-company-card .m-stats { display: flex; gap: 16px; font-size: 13px; color: var(--muted); }
+  .mobile-company-card .m-stats strong { color: var(--success); }
   .content {
     width: 100%; max-width: 1200px; margin: 0 auto;
     padding: 32px; padding-left: max(32px, env(safe-area-inset-left));
@@ -167,7 +225,7 @@
   .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; width: 100%; }
   .stat {
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 24px; position: relative; overflow: hidden; text-align: center;
+    padding: 24px; position: relative; overflow: hidden; text-align: left;
   }
   .stat::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
@@ -354,8 +412,9 @@
   .topbar-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
   .topbar-left h2 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .mobile-menu-btn {
-    display: none; width: 44px; height: 44px; padding: 0; font-size: 20px;
-    flex-shrink: 0; border-radius: 10px;
+    display: none; width: 44px; height: 44px; padding: 0; font-size: 22px;
+    flex-shrink: 0; border-radius: 10px; background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); cursor: pointer; align-items: center; justify-content: center;
   }
   .sidebar-overlay {
     display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65);
@@ -366,44 +425,43 @@
   .table-scroll { width: 100%; }
   .table-scroll .companies-table { min-width: 720px; }
 
-  /* Tablet */
+  /* Tablet & mobile shell */
   @media (max-width: 1024px) {
     .sidebar {
       transform: translateX(-100%); transition: transform 0.25s ease;
-      width: min(280px, 88vw); box-shadow: none;
+      width: min(300px, 88vw); box-shadow: none;
     }
     .sidebar.open { transform: translateX(0); box-shadow: 8px 0 40px rgba(0,0,0,0.45); }
+    .sidebar-close { display: inline-flex; align-items: center; justify-content: center; }
+    .nav-label { display: block; }
     .main { margin-left: 0; width: 100%; }
+    .desktop-topbar { display: none; }
+    .mobile-app-header { display: flex; }
+    .mobile-only { display: block; }
+    .desktop-only { display: none !important; }
     .mobile-menu-btn { display: inline-flex; }
-    .content { padding: 24px 20px; max-width: 100%; margin: 0 auto; }
-    .topbar { padding: 0 20px; width: 100%; }
-    .stats { grid-template-columns: repeat(2, 1fr); }
+    .content { padding: 20px 16px; max-width: 100%; margin: 0 auto; }
+    .stats { grid-template-columns: repeat(2, 1fr); max-width: 100%; margin-left: auto; margin-right: auto; }
+    .stat { text-align: left; }
     .onboard-layout { grid-template-columns: 1fr; }
     .steps-card { position: static; }
-    .buildings-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+    .buildings-grid { grid-template-columns: 1fr; max-width: 100%; }
+    .desktop-table-wrap { display: none; }
+    .mobile-cards-wrap { display: flex; flex-direction: column; gap: 12px; }
+    .section-header { text-align: left; align-items: flex-start; }
+    .section-header > div { width: 100%; }
   }
 
   /* Phone */
   @media (max-width: 768px) {
-    .content { padding: 16px; max-width: 100%; margin: 0 auto; }
-    .topbar { height: 56px; padding: 0 12px; padding-top: env(safe-area-inset-top, 0); width: 100%; }
-    .topbar h2 { font-size: 16px; max-width: 52vw; }
-    .login-card { padding: 28px 22px; }
-    .login-brand h1 { font-size: 22px; }
-    .stats { grid-template-columns: 1fr; gap: 12px; margin-bottom: 24px; max-width: 420px; margin-left: auto; margin-right: auto; }
-    .stat { padding: 20px 16px; }
-    .stat .num { font-size: 32px; }
-    .section-header { flex-direction: column; align-items: center; text-align: center; }
-    .section-header > div { width: 100%; }
-    .section-header .btn { width: 100%; max-width: 320px; }
+    .content { padding: 16px; }
+    .mobile-page-head h2 { font-size: 24px; }
+    .stat { padding: 18px 14px; }
+    .stat .num { font-size: 30px; }
     .two-col, .detail-grid { grid-template-columns: 1fr; }
-    .buildings-grid { grid-template-columns: 1fr; max-width: 520px; margin: 0 auto; }
-    .building-card { padding: 18px; text-align: center; }
-    .building-card .top { flex-direction: column; align-items: center; gap: 10px; }
-    .building-card .code-chip { justify-content: center; }
-    .building-card .meta-row { justify-content: center; }
+    .building-card { padding: 18px; text-align: left; }
+    .building-card .top { flex-direction: row; align-items: flex-start; }
     .form-card { padding: 22px 18px; }
-    .meta-row { flex-wrap: wrap; gap: 8px; justify-content: center; }
     .modal { padding: 24px 18px; border-radius: 16px; max-height: 92vh; margin: 0 auto; }
     .modal.lg { max-width: none; }
     .modal h3 { font-size: 20px; text-align: center; }
@@ -413,42 +471,29 @@
     .handoff-box .big-code { font-size: 22px; letter-spacing: 2px; }
     .handoff-item { flex-direction: column; gap: 4px; align-items: center; text-align: center; }
     .handoff-item .v { text-align: center; max-width: 100%; }
-    .access-control-header { flex-direction: column; align-items: center; text-align: center; }
-    .access-status-text { text-align: center; }
-    .upload-current { flex-direction: column; align-items: center; text-align: center; }
-    .danger-zone { text-align: center; }
-    .danger-zone .btn { width: 100%; max-width: 320px; margin: 0 auto; display: flex; }
-    .code-chip { font-size: 12px; padding: 10px 12px; word-break: break-all; justify-content: center; }
+    .access-control-header { flex-direction: column; align-items: flex-start; text-align: left; }
+    .access-status-text { text-align: left; }
+    .upload-current { flex-direction: column; align-items: flex-start; }
+    .danger-zone { text-align: left; }
+    .danger-zone .btn { width: 100%; }
+    .code-chip { font-size: 12px; padding: 10px 12px; word-break: break-all; }
     .toast { left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0)); text-align: center; }
     .btn { min-height: 44px; }
     .nav-item { min-height: 48px; }
-    .companies-table-wrap { overflow: visible; max-width: 520px; margin-left: auto; margin-right: auto; }
-    .table-scroll { overflow: visible; }
-    .companies-table { min-width: 0; width: 100%; display: block; }
-    .companies-table thead { display: none; }
-    .companies-table tbody { display: flex; flex-direction: column; gap: 12px; padding: 12px; }
-    .companies-table tr {
-      display: block; background: var(--surface2); border: 1px solid var(--border);
-      border-radius: 12px; padding: 14px; cursor: pointer;
-    }
-    .companies-table td {
-      display: flex; justify-content: space-between; align-items: center; gap: 12px;
-      padding: 10px 0; border-bottom: 1px solid rgba(42,42,58,0.45); text-align: right;
-    }
-    .companies-table td:last-child { border-bottom: none; }
-    .companies-table td::before {
-      content: attr(data-label);
-      font-size: 10px; font-weight: 600; color: var(--muted);
-      text-transform: uppercase; letter-spacing: 0.4px; text-align: left; flex-shrink: 0;
-    }
-    .companies-table td .code-chip { width: auto; flex-shrink: 1; }
+    .companies-table-wrap { overflow: visible; max-width: 100%; }
   }
 
   @media (max-width: 480px) {
     #login-screen { padding: 16px; }
-    .stats { max-width: 100%; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
     .workers-num { font-size: 18px; }
-    .buildings-grid, .companies-table-wrap { max-width: 100%; }
+  }
+
+  /* Desktop */
+  @media (min-width: 1025px) {
+    .sidebar { transform: none !important; }
+    .mobile-app-header { display: none !important; }
+    .desktop-topbar { display: flex; }
   }
 
   /* Large screens */
@@ -484,15 +529,19 @@
 <!-- APP -->
 <div id="app">
   <div class="shell">
-    <aside class="sidebar">
-      <div class="sidebar-brand">
-        <div class="icon">🚨</div>
-        <div>
-          <h1>Factory Alert</h1>
-          <span>Super Admin</span>
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header-row">
+        <div class="sidebar-brand">
+          <div class="icon">🏭</div>
+          <div>
+            <h1>Control Center</h1>
+            <span>Factory Alert · Super Admin</span>
+          </div>
         </div>
+        <button type="button" class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu">✕</button>
       </div>
       <nav class="nav">
+        <div class="nav-label">Navigation</div>
         <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')">
           <div class="nav-icon">📊</div> Dashboard
         </div>
@@ -513,17 +562,34 @@
     <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 
     <div class="main">
-      <header class="topbar">
-        <div class="topbar-left">
-          <button type="button" class="btn btn-ghost mobile-menu-btn" onclick="toggleSidebar()" aria-label="Open menu">☰</button>
-          <h2 id="page-title">Dashboard</h2>
+      <header class="mobile-app-header">
+        <button type="button" class="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Open menu">☰</button>
+        <div class="mobile-brand">
+          <span class="mobile-brand-icon">🏭</span>
+          <span class="mobile-brand-text">Factory Alert</span>
         </div>
         <button class="btn btn-ghost btn-sm" onclick="logout()">Sign Out</button>
+      </header>
+
+      <header class="topbar desktop-topbar">
+        <div class="desktop-page-head">
+          <p class="page-kicker">System Overview</p>
+          <h2 id="page-title">Dashboard</h2>
+          <p class="system-health">System Health: <span class="optimal">Optimal</span></p>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-ghost btn-sm" onclick="logout()">Sign Out</button>
+        </div>
       </header>
 
       <div class="content">
         <!-- DASHBOARD -->
         <div id="page-dashboard" class="page active">
+          <div class="mobile-page-head mobile-only">
+            <p class="page-kicker">System Overview</p>
+            <h2 id="mobile-page-title">Dashboard</h2>
+          </div>
+
           <div class="stats">
             <div class="stat"><div class="num" id="stat-total">0</div><div class="label">Client Buildings</div></div>
             <div class="stat workers"><div class="num" id="stat-workers">0</div><div class="label">Total Workers</div></div>
@@ -536,7 +602,7 @@
               <h3>Workers per Company</h3>
               <p>How many workers have enrolled in each client building (count only — names are managed by company admin)</p>
             </div>
-            <button class="btn btn-secondary btn-sm" onclick="fetchCompanies()">↻ Refresh</button>
+            <button class="btn btn-secondary btn-sm desktop-only" onclick="fetchCompanies()">↻ Refresh</button>
           </div>
           <div id="workers-table-wrap" class="companies-table-wrap"></div>
 
@@ -545,13 +611,17 @@
               <h3>Recent Client Buildings</h3>
               <p>Quick overview of your onboarded factories</p>
             </div>
-            <button class="btn btn-primary btn-sm" onclick="showPage('onboard')">+ Onboard Client</button>
+            <button class="btn btn-primary btn-sm desktop-only" onclick="showPage('onboard')">+ Onboard Client</button>
           </div>
           <div id="dashboard-buildings" class="buildings-grid"></div>
         </div>
 
         <!-- ONBOARD -->
         <div id="page-onboard" class="page">
+          <div class="mobile-page-head mobile-only">
+            <p class="page-kicker">Client Setup</p>
+            <h2>Onboard Client</h2>
+          </div>
           <div class="onboard-layout">
             <div class="form-card">
               <h3>Onboard New Client Factory</h3>
@@ -633,12 +703,16 @@
 
         <!-- ALL BUILDINGS -->
         <div id="page-buildings" class="page">
+          <div class="mobile-page-head mobile-only">
+            <p class="page-kicker">Portfolio</p>
+            <h2>All Buildings</h2>
+          </div>
           <div class="section-header">
             <div>
               <h3>All Client Buildings</h3>
               <p>Every company with enrolled worker counts</p>
             </div>
-            <button class="btn btn-primary btn-sm" onclick="showPage('onboard')">+ Onboard Client</button>
+            <button class="btn btn-primary btn-sm desktop-only" onclick="showPage('onboard')">+ Onboard Client</button>
           </div>
           <div id="workers-table-all" class="companies-table-wrap"></div>
           <div class="section-header" style="margin-top:28px">
@@ -799,13 +873,15 @@ function logout() {
 }
 
 function toggleSidebar() {
-  document.querySelector('.sidebar')?.classList.toggle('open');
+  const open = document.querySelector('.sidebar')?.classList.toggle('open');
   document.getElementById('sidebar-overlay')?.classList.toggle('open');
+  document.body.style.overflow = open ? 'hidden' : '';
 }
 
 function closeSidebar() {
   document.querySelector('.sidebar')?.classList.remove('open');
   document.getElementById('sidebar-overlay')?.classList.remove('open');
+  document.body.style.overflow = '';
 }
 
 function showApp() {
@@ -855,6 +931,33 @@ function buildingCard(c) {
     </div>`;
 }
 
+function companiesMobileCardsHtml() {
+  if (!companies.length) {
+    return `<div class="empty" style="padding:24px"><div class="icon">👷</div><p>No companies yet — worker counts will appear here after workers join via the mobile app.</p></div>`;
+  }
+  return companies.slice().reverse().map(c => `
+    <div class="mobile-company-card" onclick="openDetail('${c.company_code}')">
+      <div class="m-top">
+        <div>
+          <div class="m-name">${esc(c.name)}</div>
+          <div class="m-building">${esc(c.building_name || 'No building name')}</div>
+        </div>
+        <span class="status-pill ${c.is_active ? 'active' : 'inactive'}">${c.is_active ? 'Login On' : 'Login Off'}</span>
+      </div>
+      <div class="m-code" onclick="event.stopPropagation();copyText('${c.company_code}')">${c.company_code}</div>
+      <div class="m-stats">
+        <span><strong>${c.worker_count || 0}</strong> Workers</span>
+        <span><strong>${c.zone_count || 0}</strong> Zones</span>
+      </div>
+    </div>`).join('');
+}
+
+function companiesSectionHtml(onRowClick = true) {
+  return `
+    <div class="desktop-table-wrap">${companiesTableHtml(onRowClick)}</div>
+    <div class="mobile-cards-wrap">${companiesMobileCardsHtml()}</div>`;
+}
+
 function companiesTableHtml(onRowClick = true) {
   if (!companies.length) {
     return `<div class="empty" style="padding:32px"><div class="icon">👷</div><p>No companies yet — worker counts will appear here after workers join via the mobile app.</p></div>`;
@@ -890,8 +993,8 @@ function renderAll() {
   document.getElementById('stat-active').textContent = active;
   document.getElementById('stat-zones').textContent = zones;
 
-  document.getElementById('workers-table-wrap').innerHTML = companiesTableHtml();
-  document.getElementById('workers-table-all').innerHTML = companiesTableHtml();
+  document.getElementById('workers-table-wrap').innerHTML = companiesSectionHtml();
+  document.getElementById('workers-table-all').innerHTML = companiesSectionHtml();
 
   const empty = `<div class="empty" style="grid-column:1/-1"><div class="icon">🏭</div><h3>No clients yet</h3><p>Visit your first factory client and onboard them to generate a building code.</p><button class="btn btn-primary" onclick="showPage('onboard')">Onboard First Client</button></div>`;
 
@@ -1010,7 +1113,10 @@ function showPage(name) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById(`page-${name}`).classList.add('active');
   document.querySelector(`.nav-item[data-page="${name}"]`)?.classList.add('active');
-  document.getElementById('page-title').textContent = titles[name] || name;
+  const title = titles[name] || name;
+  document.getElementById('page-title').textContent = title;
+  const mobileTitle = document.getElementById('mobile-page-title');
+  if (mobileTitle) mobileTitle.textContent = title;
   if (name !== 'onboard') fetchCompanies();
 }
 
