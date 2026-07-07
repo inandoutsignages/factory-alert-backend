@@ -27,6 +27,7 @@
     --mono: 'JetBrains Mono', monospace;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; overflow-x: hidden; }
   body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; line-height: 1.5; }
 
   #login-screen {
@@ -74,12 +75,22 @@
   .alert { padding: 12px 16px; border-radius: var(--radius); font-size: 14px; margin-bottom: 16px; display: none; }
   .alert.error { display: block; background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
 
-  #app { display: none; }
-  .shell { display: flex; min-height: 100vh; }
+  #app { display: none; width: 100%; }
+  .shell { display: flex; min-height: 100vh; width: 100%; max-width: 100%; }
 
   .sidebar {
     width: 260px; background: var(--surface); border-right: 1px solid var(--border);
     display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 50;
+  }
+  .sidebar-header-row {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-header-row .sidebar-brand { border-bottom: none; flex: 1; }
+  .sidebar-close {
+    display: none; margin: 20px 16px 0 0; width: 36px; height: 36px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--surface2); color: var(--text);
+    font-size: 18px; cursor: pointer; flex-shrink: 0; align-items: center; justify-content: center;
   }
   .sidebar-brand { padding: 24px 20px; border-bottom: 1px solid var(--border); }
   .sidebar-brand .company { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
@@ -98,8 +109,15 @@
     color: var(--muted); margin-bottom: 4px; transition: all 0.15s;
   }
   .nav-item:hover { color: var(--text); background: var(--surface2); }
-  .nav-item.active { color: var(--text); background: var(--accent-dim); }
+  .nav-item.active {
+    color: var(--text); background: var(--accent-dim);
+    border-left: 3px solid var(--accent); padding-left: 11px;
+  }
   .nav-item.active .nav-icon { background: var(--accent); color: white; }
+  .nav-label {
+    font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.8px; padding: 8px 14px 10px; display: none;
+  }
   .nav-icon {
     width: 32px; height: 32px; border-radius: 8px; background: var(--surface2);
     display: flex; align-items: center; justify-content: center; font-size: 15px;
@@ -111,21 +129,49 @@
   .nav-badge.alert { background: var(--red); animation: pulse 2s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
 
-  .main { flex: 1; margin-left: 260px; }
+  .main { flex: 1; margin-left: 260px; width: 100%; max-width: 100%; overflow-x: hidden; min-height: 100vh; }
   .topbar {
+    width: 100%;
     height: 64px; border-bottom: 1px solid var(--border); background: rgba(6,10,8,0.85);
     backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: space-between;
     padding: 0 32px; position: sticky; top: 0; z-index: 40;
   }
-  .topbar h2 { font-size: 18px; font-weight: 700; }
+  .topbar h2 { font-size: 18px; font-weight: 700; color: var(--accent); }
+  .mobile-app-header {
+    display: none; width: 100%; align-items: center; justify-content: space-between;
+    padding: 12px 16px; padding-top: calc(12px + env(safe-area-inset-top, 0));
+    border-bottom: 1px solid var(--border); background: rgba(6,10,8,0.95);
+    backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 41; gap: 12px;
+  }
+  .mobile-brand { display: flex; align-items: center; gap: 10px; flex: 1; justify-content: center; min-width: 0; }
+  .mobile-brand-icon {
+    width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--accent), #16a34a); font-size: 18px; flex-shrink: 0;
+  }
+  .mobile-brand-text {
+    font-size: 15px; font-weight: 800; color: var(--accent); letter-spacing: -0.3px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .mobile-page-head { margin-bottom: 20px; width: 100%; }
+  .mobile-page-head h2 { font-size: 24px; font-weight: 800; color: var(--text); line-height: 1.1; }
+  .page-kicker {
+    font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 1px; margin-bottom: 6px;
+  }
+  .desktop-only { display: block; }
+  .mobile-only { display: none; }
   .live-banner {
     display: none; align-items: center; gap: 8px; color: var(--red);
     font-size: 13px; font-weight: 700; background: var(--red-dim);
     padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(239,68,68,0.3);
   }
   .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); animation: pulse 1.5s infinite; }
-  .content { padding: 32px; max-width: 1200px; }
-  .page { display: none; }
+  .content {
+    width: 100%; max-width: 1200px; margin: 0 auto;
+    padding: 32px; padding-left: max(32px, env(safe-area-inset-left));
+    padding-right: max(32px, env(safe-area-inset-right));
+  }
+  .page { display: none; width: 100%; }
   .page.active { display: block; }
 
   /* ENROLL BANNER */
@@ -272,8 +318,9 @@
   .topbar-left h2 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .topbar-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
   .mobile-menu-btn {
-    display: none; width: 44px; height: 44px; padding: 0; font-size: 20px;
-    flex-shrink: 0; border-radius: 10px;
+    display: none; width: 44px; height: 44px; padding: 0; font-size: 22px;
+    flex-shrink: 0; border-radius: 10px; background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); cursor: pointer; align-items: center; justify-content: center;
   }
   .sidebar-overlay {
     display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65);
@@ -288,25 +335,31 @@
   .table-scroll table { min-width: 640px; }
   .table-scroll .ack-table { min-width: 520px; }
 
-  /* Tablet */
+  /* Tablet & mobile */
   @media (max-width: 1024px) {
     .sidebar {
       transform: translateX(-100%); transition: transform 0.25s ease;
-      width: min(280px, 88vw); box-shadow: none;
+      width: min(300px, 88vw); box-shadow: none;
     }
     .sidebar.open { transform: translateX(0); box-shadow: 8px 0 40px rgba(0,0,0,0.45); }
-    .main { margin-left: 0; }
+    .sidebar-close { display: inline-flex; }
+    .nav-label { display: block; }
     .mobile-menu-btn { display: inline-flex; }
-    .content { padding: 24px 20px; max-width: none; }
-    .topbar { padding: 0 20px; }
+    .main { margin-left: 0; width: 100%; }
+    .desktop-topbar { display: none !important; }
+    .mobile-app-header { display: flex; }
+    .mobile-only { display: block; }
+    .desktop-only { display: none !important; }
+    .content { padding: 20px 16px; max-width: 100%; }
     .stats { grid-template-columns: repeat(2, 1fr); }
-    .workers-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
-    .zones-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+    .workers-grid { grid-template-columns: 1fr; }
+    .zones-grid { grid-template-columns: 1fr; }
   }
 
   /* Phone */
   @media (max-width: 768px) {
     .content { padding: 16px; }
+    .mobile-page-head h2 { font-size: 22px; }
     .topbar { height: auto; min-height: 56px; padding: 10px 12px; padding-top: calc(10px + env(safe-area-inset-top, 0)); flex-wrap: wrap; gap: 8px; }
     .topbar h2 { font-size: 16px; max-width: 100%; }
     .topbar-actions { width: 100%; justify-content: space-between; }
@@ -347,6 +400,12 @@
     .topbar-actions .btn-ghost { padding: 8px 12px; font-size: 12px; }
   }
 
+  @media (min-width: 1025px) {
+    .sidebar { transform: none !important; }
+    .mobile-app-header { display: none !important; }
+    .desktop-topbar { display: flex; }
+  }
+
   @media (min-width: 1400px) {
     .content { max-width: 1320px; margin: 0 auto; }
     .workers-grid { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
@@ -381,16 +440,20 @@
 
 <div id="app">
   <div class="shell">
-    <aside class="sidebar">
-      <div class="sidebar-brand">
-        <div class="company" id="sb-company">-</div>
-        <div class="building" id="sb-building">-</div>
-        <div class="building-code-box" onclick="copyCode()">
-          <div class="label">Worker Building Code</div>
-          <div class="code" id="sb-code">-</div>
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header-row">
+        <div class="sidebar-brand">
+          <div class="company" id="sb-company">-</div>
+          <div class="building" id="sb-building">-</div>
+          <div class="building-code-box" onclick="copyCode()">
+            <div class="label">Worker Building Code</div>
+            <div class="code" id="sb-code">-</div>
+          </div>
         </div>
+        <button type="button" class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu">✕</button>
       </div>
       <nav class="nav">
+        <div class="nav-label">Menu</div>
         <div class="nav-item active" data-page="workers" onclick="showPage('workers')">
           <div class="nav-icon">👷</div> Workers <span class="nav-badge" id="nav-workers">0</span>
         </div>
@@ -414,9 +477,17 @@
     <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 
     <div class="main">
-      <header class="topbar">
+      <header class="mobile-app-header">
+        <button type="button" class="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Open menu">☰</button>
+        <div class="mobile-brand">
+          <span class="mobile-brand-icon">🏭</span>
+          <span class="mobile-brand-text" id="mobile-brand-company">Factory Alert</span>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="logout()">Sign Out</button>
+      </header>
+
+      <header class="topbar desktop-topbar">
         <div class="topbar-left">
-          <button type="button" class="btn btn-ghost mobile-menu-btn" onclick="toggleSidebar()" aria-label="Open menu">☰</button>
           <h2 id="page-title">Workers</h2>
         </div>
         <div class="topbar-actions">
@@ -428,6 +499,10 @@
       <div class="content">
         <!-- WORKERS (default page) -->
         <div id="page-workers" class="page active">
+          <div class="mobile-page-head mobile-only">
+            <p class="page-kicker">Team</p>
+            <h2 id="mobile-page-title">Workers</h2>
+          </div>
           <div class="enroll-banner">
             <div>
               <h3>How workers join your building</h3>
@@ -456,6 +531,10 @@
 
         <!-- DASHBOARD -->
         <div id="page-dashboard" class="page">
+          <div class="mobile-page-head mobile-only">
+            <p class="page-kicker">Overview</p>
+            <h2>Dashboard</h2>
+          </div>
           <div class="stats">
             <div class="stat highlight"><div class="num" id="d-workers">-</div><div class="label">Enrolled Workers</div></div>
             <div class="stat danger"><div class="num" id="d-active-alerts">-</div><div class="label">Active Alerts</div></div>
@@ -486,6 +565,10 @@
 
         <!-- ALERTS -->
         <div id="page-alerts" class="page">
+          <div class="mobile-page-head mobile-only">
+            <p class="page-kicker">History</p>
+            <h2>Alerts</h2>
+          </div>
           <div class="toolbar">
             <div><p style="color:var(--muted);font-size:14px">Complete alert history for your building</p></div>
             <button class="btn btn-secondary btn-sm" onclick="loadAlerts()">↻ Refresh</button>
@@ -502,6 +585,10 @@
 
         <!-- ZONES -->
         <div id="page-zones" class="page">
+          <div class="mobile-page-head mobile-only">
+            <p class="page-kicker">Building</p>
+            <h2>Zones</h2>
+          </div>
           <div class="toolbar">
             <div><p style="color:var(--muted);font-size:14px">Building areas — workers see these during alerts</p></div>
             <button class="btn btn-primary btn-sm" onclick="openZoneModal()">+ Add Zone</button>
@@ -511,6 +598,10 @@
 
         <!-- EVACUATION PLAN — read-only (super admin only) -->
         <div id="page-evacuation" class="page">
+          <div class="mobile-page-head mobile-only">
+            <p class="page-kicker">Safety</p>
+            <h2>Evacuation Plan</h2>
+          </div>
           <div class="evac-readonly">🔒 <strong>Read-only.</strong> Evacuation plan is uploaded and managed only by Factory Alert super admin. You cannot add, edit, or delete it from this panel.</div>
           <div id="evac-content" class="evac-card">
             <div class="empty" style="padding:32px"><div class="icon">🚨</div><p>Loading evacuation plan...</p></div>
@@ -519,6 +610,10 @@
 
         <!-- EMERGENCY CONTACTS — company admin manages -->
         <div id="page-emergency-contacts" class="page">
+          <div class="mobile-page-head mobile-only">
+            <p class="page-kicker">Contacts</p>
+            <h2>Emergency Numbers</h2>
+          </div>
           <div class="contacts-card" style="margin-top:0">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:8px">
               <div>
@@ -673,13 +768,15 @@ function logout() {
 }
 
 function toggleSidebar() {
-  document.querySelector('.sidebar')?.classList.toggle('open');
+  const open = document.querySelector('.sidebar')?.classList.toggle('open');
   document.getElementById('sidebar-overlay')?.classList.toggle('open');
+  document.body.style.overflow = open ? 'hidden' : '';
 }
 
 function closeSidebar() {
   document.querySelector('.sidebar')?.classList.remove('open');
   document.getElementById('sidebar-overlay')?.classList.remove('open');
+  document.body.style.overflow = '';
 }
 
 function showApp() {
@@ -688,6 +785,8 @@ function showApp() {
   document.getElementById('sb-company').textContent = companyName;
   document.getElementById('sb-building').textContent = buildingName;
   document.getElementById('sb-code').textContent = companyCode;
+  const mobileBrand = document.getElementById('mobile-brand-company');
+  if (mobileBrand) mobileBrand.textContent = companyName || 'Factory Alert';
   refreshInterval = setInterval(() => {
     const p = document.querySelector('.page.active')?.id;
     if (p === 'page-workers') loadWorkers();
@@ -1070,7 +1169,10 @@ function showPage(name) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById(`page-${name}`).classList.add('active');
   document.querySelector(`.nav-item[data-page="${name}"]`)?.classList.add('active');
-  document.getElementById('page-title').textContent = titles[name];
+  const title = titles[name] || name;
+  document.getElementById('page-title').textContent = title;
+  const mobileTitle = document.getElementById('mobile-page-title');
+  if (mobileTitle) mobileTitle.textContent = title;
   ({ workers: loadWorkers, dashboard: loadDashboard, alerts: loadAlerts, zones: loadZones, evacuation: loadEvacuationPlan, 'emergency-contacts': loadEmergencyContacts })[name]?.();
 }
 
