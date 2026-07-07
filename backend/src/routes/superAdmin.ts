@@ -2,13 +2,14 @@ import { Router, Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import * as store from '../db/store';
-import { authenticate, superAdminOnly, createSession, AuthRequest } from '../middleware/auth';
+import { authenticate, superAdminOnly, createSession, destroySessionsForCompany, AuthRequest } from '../middleware/auth';
 import { verifyMasterPassword } from '../utils/masterPassword';
 import {
   emptyEvacFileFields,
   evacPlanPayload,
   evacuationUpload,
   deleteCompanyEvacFile,
+  deleteCompanyEvacDir,
   hasEvacuationPlan,
   readTextPlanIfApplicable,
   ensureUploadDirs,
@@ -247,11 +248,66 @@ router.delete('/companies/:company_code/evacuation-plan', authenticate, superAdm
   return res.json({ message: 'Evacuation plan deleted', ...evacPlanPayload(updated!) });
 });
 
+router.patch('/companies/:company_code/status', authenticate, superAdminOnly, async (req: AuthRequest, res: Response) => {
+  const company_code = String(req.params.company_code);
+  const { is_active } = req.body;
+
+  if (typeof is_active !== 'boolean') {
+    return res.status(400).json({ error: 'is_active (true or false) is required' });
+  }
+
+  const company = await store.setCompanyActive(company_code, is_active);
+  if (!company) return res.status(404).json({ error: 'Company not found' });
+
+  if (!is_active) {
+    destroySessionsForCompany(company_code);
+  }
+
+  return res.json({
+    message: is_active
+      ? `Admin login enabled for ${company.name} — same credentials work again`
+      : `Admin login disabled for ${company.name}`,
+    company: {
+      company_code: company.company_code,
+      name: company.name,
+      is_active: company.is_active,
+    },
+  });
+});
+
 router.patch('/companies/:company_code/deactivate', authenticate, superAdminOnly, async (req: AuthRequest, res: Response) => {
   const { company_code } = req.params;
-  const company = await store.deactivateCompany(String(company_code));
+  const code = String(company_code);
+  const company = await store.deactivateCompany(code);
   if (!company) return res.status(404).json({ error: 'Company not found' });
+  destroySessionsForCompany(code);
   return res.json({ message: `Company ${company.name} deactivated` });
+});
+
+router.patch('/companies/:company_code/activate', authenticate, superAdminOnly, async (req: AuthRequest, res: Response) => {
+  const { company_code } = req.params;
+  const code = String(company_code);
+  const company = await store.activateCompany(code);
+  if (!company) return res.status(404).json({ error: 'Company not found' });
+  return res.json({
+    message: `Admin login enabled for ${company.name}`,
+    company: { company_code: company.company_code, is_active: company.is_active },
+  });
+});
+
+router.delete('/companies/:company_code', authenticate, superAdminOnly, async (req: AuthRequest, res: Response) => {
+  const company_code = String(req.params.company_code);
+  const company = await store.findCompanyByCode(company_code);
+  if (!company) return res.status(404).json({ error: 'Company not found' });
+
+  if (company.evacuation_plan_file) {
+    deleteCompanyEvacFile(company_code, company.evacuation_plan_file);
+  }
+  deleteCompanyEvacDir(company_code);
+  destroySessionsForCompany(company_code);
+  await store.deleteCompany(company_code);
+
+  return res.json({ message: `Company ${company.name} deleted permanently` });
 });
 
 export default router;

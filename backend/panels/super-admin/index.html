@@ -298,6 +298,42 @@
   .detail-item .k { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
   .detail-item .v { font-size: 14px; font-weight: 600; }
 
+  .access-control-card {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 14px;
+    padding: 18px 20px; margin: 20px 0;
+  }
+  .access-control-header {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  }
+  .access-control-header h4 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .access-control-header p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .access-status-text { font-size: 13px; margin-top: 12px; font-weight: 600; }
+  .access-status-text.on { color: var(--success); }
+  .access-status-text.off { color: #f59e0b; }
+
+  .toggle-switch {
+    position: relative; display: inline-block; width: 52px; height: 30px; flex-shrink: 0;
+  }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; cursor: pointer; inset: 0;
+    background: #3f3f46; border-radius: 30px; transition: 0.2s;
+  }
+  .toggle-slider:before {
+    position: absolute; content: ""; height: 22px; width: 22px; left: 4px; bottom: 4px;
+    background: white; border-radius: 50%; transition: 0.2s;
+  }
+  .toggle-switch input:checked + .toggle-slider { background: #22c55e; }
+  .toggle-switch input:checked + .toggle-slider:before { transform: translateX(22px); }
+
+  .danger-zone {
+    background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.25);
+    border-radius: 14px; padding: 18px 20px; margin-top: 20px;
+  }
+  .danger-zone h4 { font-size: 15px; font-weight: 700; color: #ef4444; margin-bottom: 6px; }
+  .danger-zone p { font-size: 13px; color: var(--muted); line-height: 1.5; margin-bottom: 14px; }
+  .modal-actions.split { justify-content: space-between; align-items: center; }
+
   .toast {
     position: fixed; bottom: 24px; right: 24px; background: var(--surface3);
     border: 1px solid var(--border); padding: 14px 20px; border-radius: 12px;
@@ -543,6 +579,27 @@
     <div class="detail-grid" id="detail-grid"></div>
     <div id="detail-evac-section" style="margin:20px 0"></div>
     <div id="detail-zones"></div>
+
+    <div class="access-control-card">
+      <div class="access-control-header">
+        <div>
+          <h4>Admin Panel Login</h4>
+          <p>Turn off to block company admin login. Turn back on and they can sign in with the same company code and password.</p>
+        </div>
+        <label class="toggle-switch" title="Toggle admin login">
+          <input type="checkbox" id="admin-access-toggle" onchange="toggleAdminAccess()">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div id="access-status-text" class="access-status-text on">Admin login is enabled</div>
+    </div>
+
+    <div class="danger-zone">
+      <h4>Permanent Delete</h4>
+      <p>Removes this company forever — workers, zones, alerts, and admin access. To use the system again you must create a new company with a new admin password.</p>
+      <button class="btn btn-danger" onclick="deleteCompanyPermanently()">Delete Company Permanently</button>
+    </div>
+
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeDetail()">Close</button>
     </div>
@@ -654,7 +711,7 @@ function buildingCard(c) {
           <div class="name">${esc(c.name)}</div>
           <div class="building">${esc(c.building_name || 'No building name')}</div>
         </div>
-        <span class="status-pill ${c.is_active ? 'active' : 'inactive'}">${c.is_active ? 'Active' : 'Inactive'}</span>
+        <span class="status-pill ${c.is_active ? 'active' : 'inactive'}">${c.is_active ? 'Login On' : 'Login Off'}</span>
       </div>
       <div class="code-chip" onclick="event.stopPropagation();copyText('${c.company_code}')">
         <span>${c.company_code}</span><button>📋</button>
@@ -686,7 +743,7 @@ function companiesTableHtml(onRowClick = true) {
       <td><span class="code-chip" style="margin:0;padding:6px 10px;font-size:12px" onclick="event.stopPropagation();copyText('${c.company_code}')">${c.company_code}</span></td>
       <td><span class="workers-num ${(c.worker_count || 0) === 0 ? 'zero' : ''}">${c.worker_count || 0}</span></td>
       <td>${c.zone_count || 0}</td>
-      <td><span class="status-pill ${c.is_active ? 'active' : 'inactive'}">${c.is_active ? 'Active' : 'Inactive'}</span></td>
+      <td><span class="status-pill ${c.is_active ? 'active' : 'inactive'}">${c.is_active ? 'Login On' : 'Login Off'}</span></td>
       <td style="color:var(--muted);font-size:12px">${new Date(c.created_at).toLocaleDateString()}</td>
     </tr>`).join('');
   return `<table class="companies-table">
@@ -695,7 +752,7 @@ function companiesTableHtml(onRowClick = true) {
       <th>Building Code</th>
       <th>Workers</th>
       <th>Zones</th>
-      <th>Status</th>
+      <th>Admin Login</th>
       <th>Onboarded</th>
     </tr></thead>
     <tbody>${rows}</tbody>
@@ -794,7 +851,7 @@ async function openDetail(code) {
       <div class="detail-item"><div class="k">Building</div><div class="v">${esc(c.building_name || '-')}</div></div>
       <div class="detail-item"><div class="k">Address</div><div class="v">${esc(c.address || '-')}</div></div>
       <div class="detail-item"><div class="k">Floors</div><div class="v">${c.total_floors}</div></div>
-      <div class="detail-item"><div class="k">Status</div><div class="v">${c.is_active ? '✅ Active' : '⛔ Inactive'}</div></div>
+      <div class="detail-item"><div class="k">Admin Login</div><div class="v" id="detail-login-status">${c.is_active ? '✅ Enabled' : '⛔ Disabled'}</div></div>
       <div class="detail-item"><div class="k">Onboarded</div><div class="v">${new Date(c.created_at).toLocaleDateString()}</div></div>
       <div class="detail-item"><div class="k">Workers Enrolled</div><div class="v" style="color:#22c55e;font-size:18px">${data.stats.worker_count ?? 0}</div></div>
       <div class="detail-item"><div class="k">Zones</div><div class="v">${data.stats.total_zones}</div></div>`;
@@ -820,6 +877,7 @@ async function openDetail(code) {
       ? `<h4 style="font-size:14px;margin-bottom:12px;color:var(--muted)">Building Zones (${zones.length})</h4>` +
         zones.map(z => `<div style="background:var(--surface2);padding:12px;border-radius:10px;margin-bottom:8px;font-size:14px"><strong>${esc(z.name)}</strong> <span style="color:var(--muted)">· Floor ${esc(z.floor)} · ${z.zone_type}</span></div>`).join('')
       : '<p style="color:var(--muted);font-size:14px">No zones configured yet — client admin will add these.</p>';
+    updateAccessToggle(c.is_active);
     document.getElementById('detail-modal').classList.add('open');
   } catch {}
 }
@@ -835,6 +893,81 @@ function showPage(name) {
 
 function closeHandoff() { document.getElementById('handoff-modal').classList.remove('open'); }
 function closeDetail() { document.getElementById('detail-modal').classList.remove('open'); }
+
+function updateAccessToggle(isActive) {
+  const toggle = document.getElementById('admin-access-toggle');
+  const statusEl = document.getElementById('access-status-text');
+  const detailStatus = document.getElementById('detail-login-status');
+  if (toggle) toggle.checked = !!isActive;
+  if (statusEl) {
+    statusEl.textContent = isActive
+      ? 'Admin login is enabled — company admin can sign in with existing credentials'
+      : 'Admin login is disabled — company admin cannot sign in until you turn this on';
+    statusEl.className = `access-status-text ${isActive ? 'on' : 'off'}`;
+  }
+  if (detailStatus) {
+    detailStatus.textContent = isActive ? '✅ Enabled' : '⛔ Disabled';
+  }
+}
+
+async function toggleAdminAccess() {
+  const toggle = document.getElementById('admin-access-toggle');
+  const code = currentDetailCompany?.company_code;
+  if (!code || !toggle) return;
+
+  const is_active = toggle.checked;
+  const name = currentDetailCompany?.name || code;
+
+  if (!is_active) {
+    const ok = confirm(
+      `Disable admin login for "${name}"?\n\nThe company admin will be logged out and cannot sign in until you turn this back on. Their company code and password stay the same.`
+    );
+    if (!ok) {
+      toggle.checked = true;
+      return;
+    }
+  }
+
+  try {
+    const res = await fetch(`${API}/super-admin/companies/${code}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ is_active }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update admin access');
+
+    currentDetailCompany = { ...currentDetailCompany, is_active };
+    updateAccessToggle(is_active);
+    await fetchCompanies();
+  } catch (err) {
+    toggle.checked = !is_active;
+    alert(err.message);
+  }
+}
+
+async function deleteCompanyPermanently() {
+  const code = currentDetailCompany?.company_code;
+  if (!code) return;
+  const name = currentDetailCompany?.name || code;
+  if (!confirm(
+    `Permanently delete "${name}"?\n\nThis cannot be undone. All workers, zones, alerts, and admin access will be removed.\n\nTo use this company again you must create it again from scratch with a new admin password.`
+  )) return;
+  try {
+    const res = await fetch(`${API}/super-admin/companies/${code}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Delete failed');
+    currentDetailCompany = null;
+    closeDetail();
+    await fetchCompanies();
+    alert(data.message || 'Company deleted permanently');
+  } catch (err) {
+    alert(err.message);
+  }
+}
 
 let evacEditCode = '';
 function onEvacFileSelect(input, labelId) {

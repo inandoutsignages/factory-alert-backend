@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import * as store from '../db/store';
-import { authenticate, companyAdminOnly, createSession, AuthRequest } from '../middleware/auth';
+import { companyAdminGuard, createSession, AuthRequest } from '../middleware/auth';
 import { evacPlanPayload } from '../utils/evacuationFiles';
 
 const router = Router();
@@ -15,8 +15,11 @@ router.post('/login', async (req: Request, res: Response) => {
   }
 
   const company = await store.findCompanyByCode(company_code);
-  if (!company || !company.is_active) {
-    return res.status(401).json({ error: 'Invalid company code or company is inactive' });
+  if (!company) {
+    return res.status(401).json({ error: 'Invalid company code or company has been deleted' });
+  }
+  if (!company.is_active) {
+    return res.status(401).json({ error: 'Admin login is disabled for this company. Contact super admin to re-enable access.' });
   }
 
   const passwordMatch = await bcrypt.compare(password, company.admin_password);
@@ -38,7 +41,7 @@ router.post('/login', async (req: Request, res: Response) => {
   });
 });
 
-router.get('/dashboard', authenticate, companyAdminOnly, async (req: AuthRequest, res: Response) => {
+router.get('/dashboard', ...companyAdminGuard, async (req: AuthRequest, res: Response) => {
   const { company_code } = req.user!;
   const company = await store.findCompanyByCode(company_code!);
   if (!company) return res.status(404).json({ error: 'Company not found' });
@@ -66,7 +69,7 @@ router.get('/dashboard', authenticate, companyAdminOnly, async (req: AuthRequest
   });
 });
 
-router.get('/evacuation-plan', authenticate, companyAdminOnly, async (req: AuthRequest, res: Response) => {
+router.get('/evacuation-plan', ...companyAdminGuard, async (req: AuthRequest, res: Response) => {
   const { company_code } = req.user!;
   const company = await store.findCompanyByCode(company_code!);
   if (!company) return res.status(404).json({ error: 'Company not found' });
@@ -86,18 +89,18 @@ const evacuationPlanForbidden = (_req: AuthRequest, res: Response) =>
     error: 'Evacuation plan can only be uploaded, edited, or deleted by Factory Alert super admin',
   });
 
-router.post('/evacuation-plan', authenticate, companyAdminOnly, evacuationPlanForbidden);
-router.patch('/evacuation-plan', authenticate, companyAdminOnly, evacuationPlanForbidden);
-router.put('/evacuation-plan', authenticate, companyAdminOnly, evacuationPlanForbidden);
-router.delete('/evacuation-plan', authenticate, companyAdminOnly, evacuationPlanForbidden);
+router.post('/evacuation-plan', ...companyAdminGuard, evacuationPlanForbidden);
+router.patch('/evacuation-plan', ...companyAdminGuard, evacuationPlanForbidden);
+router.put('/evacuation-plan', ...companyAdminGuard, evacuationPlanForbidden);
+router.delete('/evacuation-plan', ...companyAdminGuard, evacuationPlanForbidden);
 
-router.get('/emergency-contacts', authenticate, companyAdminOnly, async (req: AuthRequest, res: Response) => {
+router.get('/emergency-contacts', ...companyAdminGuard, async (req: AuthRequest, res: Response) => {
   const { company_code } = req.user!;
   const contacts = await store.listEmergencyContacts(company_code!);
   return res.json({ contacts, total: contacts.length });
 });
 
-router.post('/emergency-contacts', authenticate, companyAdminOnly, async (req: AuthRequest, res: Response) => {
+router.post('/emergency-contacts', ...companyAdminGuard, async (req: AuthRequest, res: Response) => {
   const { company_code } = req.user!;
   const { label, phone } = req.body;
 
@@ -114,7 +117,7 @@ router.post('/emergency-contacts', authenticate, companyAdminOnly, async (req: A
   return res.status(201).json({ message: 'Emergency contact added', contact });
 });
 
-router.patch('/emergency-contacts/:contact_id', authenticate, companyAdminOnly, async (req: AuthRequest, res: Response) => {
+router.patch('/emergency-contacts/:contact_id', ...companyAdminGuard, async (req: AuthRequest, res: Response) => {
   const { company_code } = req.user!;
   const contact_id = String(req.params.contact_id);
   const { label, phone } = req.body;
@@ -135,7 +138,7 @@ router.patch('/emergency-contacts/:contact_id', authenticate, companyAdminOnly, 
   return res.json({ message: 'Emergency contact updated', contact });
 });
 
-router.delete('/emergency-contacts/:contact_id', authenticate, companyAdminOnly, async (req: AuthRequest, res: Response) => {
+router.delete('/emergency-contacts/:contact_id', ...companyAdminGuard, async (req: AuthRequest, res: Response) => {
   const { company_code } = req.user!;
   const contact_id = String(req.params.contact_id);
 
@@ -145,7 +148,7 @@ router.delete('/emergency-contacts/:contact_id', authenticate, companyAdminOnly,
   return res.json({ message: `Removed ${removed.label}`, contact: removed });
 });
 
-router.get('/workers', authenticate, companyAdminOnly, async (req: AuthRequest, res: Response) => {
+router.get('/workers', ...companyAdminGuard, async (req: AuthRequest, res: Response) => {
   const { company_code } = req.user!;
   const workers = await store.listWorkersByCompany(company_code!);
 
@@ -165,7 +168,7 @@ router.get('/workers', authenticate, companyAdminOnly, async (req: AuthRequest, 
   });
 });
 
-router.delete('/workers/:worker_id', authenticate, companyAdminOnly, async (req: AuthRequest, res: Response) => {
+router.delete('/workers/:worker_id', ...companyAdminGuard, async (req: AuthRequest, res: Response) => {
   const { company_code } = req.user!;
   const { worker_id } = req.params;
 
@@ -175,7 +178,7 @@ router.delete('/workers/:worker_id', authenticate, companyAdminOnly, async (req:
   return res.json({ message: `Worker ${worker.name} deactivated` });
 });
 
-router.get('/alerts', authenticate, companyAdminOnly, async (req: AuthRequest, res: Response) => {
+router.get('/alerts', ...companyAdminGuard, async (req: AuthRequest, res: Response) => {
   const { company_code } = req.user!;
   const alerts = await store.listAlertsByCompany(company_code!);
   const withSummary = await Promise.all(alerts.map(a => store.getAlertWithAckSummary(a)));
@@ -183,7 +186,7 @@ router.get('/alerts', authenticate, companyAdminOnly, async (req: AuthRequest, r
   return res.json({ alerts: withSummary, total: withSummary.length });
 });
 
-router.get('/alerts/:alert_id/acknowledgments', authenticate, companyAdminOnly, async (req: AuthRequest, res: Response) => {
+router.get('/alerts/:alert_id/acknowledgments', ...companyAdminGuard, async (req: AuthRequest, res: Response) => {
   const { company_code } = req.user!;
   const { alert_id } = req.params;
 
@@ -238,7 +241,7 @@ router.get('/alerts/:alert_id/acknowledgments', authenticate, companyAdminOnly, 
   });
 });
 
-router.post('/alerts/:alert_id/acknowledge/:worker_id', authenticate, companyAdminOnly, async (req: AuthRequest, res: Response) => {
+router.post('/alerts/:alert_id/acknowledge/:worker_id', ...companyAdminGuard, async (req: AuthRequest, res: Response) => {
   const { company_code } = req.user!;
   const alert_id = String(req.params.alert_id);
   const worker_id = String(req.params.worker_id);
@@ -289,7 +292,7 @@ router.post('/alerts/:alert_id/acknowledge/:worker_id', authenticate, companyAdm
   });
 });
 
-router.patch('/alerts/:alert_id/resolve', authenticate, companyAdminOnly, async (req: AuthRequest, res: Response) => {
+router.patch('/alerts/:alert_id/resolve', ...companyAdminGuard, async (req: AuthRequest, res: Response) => {
   const { company_code } = req.user!;
   const { alert_id } = req.params;
   const { resolved_by_name } = req.body;
@@ -300,13 +303,13 @@ router.patch('/alerts/:alert_id/resolve', authenticate, companyAdminOnly, async 
   return res.json({ message: 'Alert resolved', alert });
 });
 
-router.get('/zones', authenticate, companyAdminOnly, async (req: AuthRequest, res: Response) => {
+router.get('/zones', ...companyAdminGuard, async (req: AuthRequest, res: Response) => {
   const { company_code } = req.user!;
   const zones = await store.listZonesByCompany(company_code!);
   return res.json({ zones, total: zones.length });
 });
 
-router.post('/zones', authenticate, companyAdminOnly, async (req: AuthRequest, res: Response) => {
+router.post('/zones', ...companyAdminGuard, async (req: AuthRequest, res: Response) => {
   const { company_code } = req.user!;
   const {
     name, floor, zone_type, description,
@@ -332,7 +335,7 @@ router.post('/zones', authenticate, companyAdminOnly, async (req: AuthRequest, r
   return res.status(201).json({ message: 'Zone created', zone });
 });
 
-router.delete('/zones/:zone_id', authenticate, companyAdminOnly, async (req: AuthRequest, res: Response) => {
+router.delete('/zones/:zone_id', ...companyAdminGuard, async (req: AuthRequest, res: Response) => {
   const { company_code } = req.user!;
   const { zone_id } = req.params;
 

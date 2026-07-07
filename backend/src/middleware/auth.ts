@@ -1,5 +1,6 @@
 import { randomUUID, timingSafeEqual } from 'crypto';
 import { Request, Response, NextFunction } from 'express';
+import * as store from '../db/store';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -48,6 +49,14 @@ export function destroySession(token: string): void {
   sessions.delete(token);
 }
 
+export function destroySessionsForCompany(company_code: string): void {
+  for (const [token, session] of sessions.entries()) {
+    if (session.company_code === company_code) {
+      sessions.delete(token);
+    }
+  }
+}
+
 function getSession(token: string): Session | null {
   const session = sessions.get(token);
   if (!session) return null;
@@ -92,6 +101,22 @@ export const companyAdminOnly = (req: AuthRequest, res: Response, next: NextFunc
   }
   next();
 };
+
+export const requireActiveCompany = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  const company_code = req.user?.company_code;
+  if (!company_code) return next();
+
+  const company = await store.findCompanyByCode(company_code);
+  if (!company) {
+    return res.status(401).json({ error: 'Company has been deleted' });
+  }
+  if (!company.is_active) {
+    return res.status(401).json({ error: 'Admin login is disabled for this company' });
+  }
+  next();
+};
+
+export const companyAdminGuard = [authenticate, companyAdminOnly, requireActiveCompany];
 
 export const sameCompanyOnly = (req: AuthRequest, res: Response, next: NextFunction) => {
   const { company_code } = req.params;

@@ -41,6 +41,15 @@ export function deleteCompanyEvacFile(companyCode: string, storedName: string) {
   }
 }
 
+export function deleteCompanyEvacDir(companyCode: string) {
+  const dir = companyEvacDir(companyCode);
+  try {
+    if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
+  } catch (err) {
+    console.warn('[evac] could not delete directory:', dir, err);
+  }
+}
+
 export function readTextPlanIfApplicable(filePath: string, mime: string): string | null {
   if (mime !== 'text/plain') return null;
   try {

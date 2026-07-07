@@ -603,7 +603,16 @@ async function apiFetch(path, opts = {}) {
   const res = await fetch(`${API}${path}`, {
     ...opts, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(opts.headers || {}) },
   });
-  if (res.status === 401) { logout(); throw new Error('Session expired'); }
+  if (res.status === 401) {
+    const data = await res.json().catch(() => ({}));
+    logout();
+    const errEl = document.getElementById('login-error');
+    if (errEl && data.error) {
+      errEl.className = 'alert error';
+      errEl.textContent = data.error;
+    }
+    throw new Error(data.error || 'Session expired');
+  }
   return res.json();
 }
 

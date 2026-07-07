@@ -142,6 +142,36 @@ export async function deactivateCompany(company_code: string): Promise<Company |
   return updateCompany(company_code, { is_active: false });
 }
 
+export async function activateCompany(company_code: string): Promise<Company | null> {
+  return updateCompany(company_code, { is_active: true });
+}
+
+export async function setCompanyActive(company_code: string, is_active: boolean): Promise<Company | null> {
+  return updateCompany(company_code, { is_active });
+}
+
+export async function deleteCompany(company_code: string): Promise<Company | null> {
+  if (!hasDatabase()) {
+    const index = memory.companies.findIndex(c => c.company_code === company_code);
+    if (index === -1) return null;
+    const [removed] = memory.companies.splice(index, 1);
+    memory.zones = memory.zones.filter(z => z.company_code !== company_code);
+    memory.workers = memory.workers.filter(w => w.company_code !== company_code);
+    memory.alerts = memory.alerts.filter(a => a.company_code !== company_code);
+    memory.alert_acknowledgments = memory.alert_acknowledgments.filter(
+      a => a.company_code !== company_code
+    );
+    memory.emergency_contacts = memory.emergency_contacts.filter(
+      c => c.company_code !== company_code
+    );
+    return removed;
+  }
+  const company = await findCompanyByCode(company_code);
+  if (!company) return null;
+  await getPool().query('DELETE FROM companies WHERE company_code = $1', [company_code]);
+  return company;
+}
+
 // ─── Zones ───────────────────────────────────────────────────────────────────
 
 export async function listZonesByCompany(company_code: string): Promise<Zone[]> {
