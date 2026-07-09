@@ -435,8 +435,9 @@ async function sendFirebasePush(
   const tokens = workers.map(w => w.fcm_token).filter(Boolean);
   if (tokens.length === 0) return 0;
 
+  // Data-only on Android so FCM always wakes the app (even when killed) and our
+  // background handler can show a full-screen emergency notification over the lock screen.
   const message = {
-    notification: { title, body },
     data: {
       alert_id: String(alert.id),
       alert_type: String(alert.alert_type),
@@ -445,17 +446,13 @@ async function sendFirebasePush(
       company_code: String(alert.company_code || ''),
       nearest_exit: String(zone?.exit_direction || ''),
       extinguisher: String(zone?.extinguisher_location || ''),
+      fa_title: title,
+      fa_body: body,
+      fa_emergency: 'true',
     },
     android: {
       priority: 'high' as const,
       ttl: 86400000,
-      notification: {
-        channelId: 'factory_alerts',
-        priority: 'max' as const,
-        visibility: 'public' as const,
-        defaultSound: true,
-        tag: `alert_${alert.id}`,
-      },
     },
     tokens,
   };
