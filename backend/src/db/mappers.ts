@@ -32,6 +32,7 @@ export function mapCompany(r: Record<string, unknown>): Company {
     name: String(r.name),
     company_code: String(r.company_code),
     admin_password: String(r.admin_password),
+    admin_password_plain: String(r.admin_password_plain || ''),
     building_name: String(r.building_name || ''),
     address: String(r.address || ''),
     total_floors: Number(r.total_floors || 1),

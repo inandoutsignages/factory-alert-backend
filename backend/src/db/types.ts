@@ -3,6 +3,7 @@ export interface Company {
   name: string;
   company_code: string;
   admin_password: string;
+  admin_password_plain: string;
   building_name: string;
   address: string;
   total_floors: number;

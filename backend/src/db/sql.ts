@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS companies (
   name VARCHAR(255) NOT NULL,
   company_code VARCHAR(50) UNIQUE NOT NULL,
   admin_password VARCHAR(255) NOT NULL,
+  admin_password_plain TEXT DEFAULT '',
   building_name VARCHAR(255) DEFAULT '',
   address TEXT DEFAULT '',
   total_floors INTEGER DEFAULT 1,

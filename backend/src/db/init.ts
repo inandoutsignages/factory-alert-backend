@@ -10,6 +10,9 @@ export async function initDatabase(): Promise<void> {
   const pool = getPool();
   try {
     await pool.query(SQL_SCHEMA);
+    await pool.query(
+      `ALTER TABLE companies ADD COLUMN IF NOT EXISTS admin_password_plain TEXT DEFAULT ''`
+    );
   } catch (err: unknown) {
     const code = err && typeof err === 'object' && 'code' in err ? String((err as { code: string }).code) : '';
     if (code === 'ENETUNREACH' || code === 'ETIMEDOUT' || code === 'ECONNREFUSED') {

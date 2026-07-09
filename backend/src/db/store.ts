@@ -55,12 +55,12 @@ export async function createCompany(data: Omit<Company, 'created_at'>): Promise<
   }
   const { rows } = await getPool().query(
     `INSERT INTO companies (
-      id, name, company_code, admin_password, building_name, address, total_floors,
+      id, name, company_code, admin_password, admin_password_plain, building_name, address, total_floors,
       evacuation_plan, assembly_point, evacuation_plan_file, evacuation_plan_file_name,
       evacuation_plan_file_mime, is_active
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
     [
-      data.id, data.name, data.company_code, data.admin_password,
+      data.id, data.name, data.company_code, data.admin_password, data.admin_password_plain || '',
       data.building_name, data.address, data.total_floors,
       data.evacuation_plan, data.assembly_point,
       data.evacuation_plan_file, data.evacuation_plan_file_name,
@@ -148,6 +148,25 @@ export async function activateCompany(company_code: string): Promise<Company | n
 
 export async function setCompanyActive(company_code: string, is_active: boolean): Promise<Company | null> {
   return updateCompany(company_code, { is_active });
+}
+
+export async function updateCompanyAdminPassword(
+  company_code: string,
+  hashedPassword: string,
+  plainPassword: string
+): Promise<Company | null> {
+  if (!hasDatabase()) {
+    const company = memory.companies.find(c => c.company_code === company_code);
+    if (!company) return null;
+    company.admin_password = hashedPassword;
+    company.admin_password_plain = plainPassword;
+    return company;
+  }
+  const { rows } = await getPool().query(
+    `UPDATE companies SET admin_password = $1, admin_password_plain = $2 WHERE company_code = $3 RETURNING *`,
+    [hashedPassword, plainPassword, company_code]
+  );
+  return rows[0] ? mapCompany(rows[0]) : null;
 }
 
 export async function deleteCompany(company_code: string): Promise<Company | null> {

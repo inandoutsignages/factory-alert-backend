@@ -365,6 +365,29 @@
   .detail-item .k { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
   .detail-item .v { font-size: 14px; font-weight: 600; }
 
+  .credentials-card {
+    background: linear-gradient(135deg, rgba(34,197,94,0.08), rgba(34,197,94,0.02));
+    border: 1px solid rgba(34,197,94,0.28); border-radius: 14px; padding: 18px 20px; margin: 16px 0 20px;
+  }
+  .credentials-card h4 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .credentials-card .sub-note { font-size: 12px; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
+  .credential-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 12px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap;
+  }
+  .credential-row:last-of-type { border-bottom: none; padding-bottom: 0; }
+  .credential-row .k { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; width: 100%; margin-bottom: 4px; }
+  .credential-row .v-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+  .credential-row .v {
+    font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--accent);
+    flex: 1; word-break: break-all;
+  }
+  .credential-row .v.muted { color: var(--muted); font-weight: 500; font-family: var(--font); font-size: 13px; }
+  .credential-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .reset-password-row { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border); }
+  .reset-password-row .field { margin-bottom: 10px; }
+  .reset-password-row input { width: 100%; }
+
   .access-control-card {
     background: var(--surface2); border: 1px solid var(--border); border-radius: 14px;
     padding: 18px 20px; margin: 20px 0;
@@ -740,7 +763,7 @@
     <div class="handoff-box" style="padding:16px">
       <div class="handoff-item"><span class="k">Client Company</span><span class="v" id="modal-company">-</span></div>
       <div class="handoff-item"><span class="k">Building</span><span class="v" id="modal-building">-</span></div>
-      <div class="handoff-item"><span class="k">Admin Password</span><span class="v" style="color:var(--muted)">(the one you set)</span></div>
+      <div class="handoff-item"><span class="k">Admin Password</span><span class="v" id="modal-password" style="color:var(--accent)">-</span></div>
       <div class="handoff-item"><span class="k">Company Admin Panel</span><span class="v" id="modal-admin-url" style="font-size:12px;color:var(--accent)">-</span></div>
       <div class="handoff-item"><span class="k">Workers join via</span><span class="v">Mobile App + Building Code</span></div>
     </div>
@@ -762,6 +785,7 @@
       <button onclick="copyText(document.getElementById('detail-code').textContent)">📋</button>
     </div>
     <div class="detail-grid" id="detail-grid"></div>
+    <div id="detail-credentials"></div>
     <div id="detail-evac-section" style="margin:20px 0"></div>
     <div id="detail-zones"></div>
 
@@ -1044,7 +1068,7 @@ async function createCompany() {
       });
     }
 
-    lastCreated = { code: data.company_code, name, building: building_name };
+    lastCreated = { code: data.company_code, name, building: building_name, password: admin_password };
     ['c-name','c-building','c-address','c-password','c-password2','c-assembly','c-evac-plan'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('c-floors').value = '1';
     if (fileInput) { fileInput.value = ''; document.getElementById('c-evac-file-label').textContent = ''; }
@@ -1053,6 +1077,7 @@ async function createCompany() {
     document.getElementById('modal-code').textContent = data.company_code;
     document.getElementById('modal-company').textContent = name;
     document.getElementById('modal-building').textContent = building_name || name;
+    document.getElementById('modal-password').textContent = admin_password;
     document.getElementById('modal-admin-url').textContent = adminUrl;
     document.getElementById('handoff-modal').classList.add('open');
 
@@ -1080,6 +1105,7 @@ async function openDetail(code) {
       <div class="detail-item"><div class="k">Onboarded</div><div class="v">${new Date(c.created_at).toLocaleDateString()}</div></div>
       <div class="detail-item"><div class="k">Workers Enrolled</div><div class="v" style="color:#22c55e;font-size:18px">${data.stats.worker_count ?? 0}</div></div>
       <div class="detail-item"><div class="k">Zones</div><div class="v">${data.stats.total_zones}</div></div>`;
+    renderDetailCredentials(c);
     const zones = data.zones || [];
     const hasPlan = !!(c.evacuation_plan || c.assembly_point || c.has_file);
     const fileBlock = c.has_file && c.evacuation_plan_file_url
@@ -1105,6 +1131,77 @@ async function openDetail(code) {
     updateAccessToggle(c.is_active);
     document.getElementById('detail-modal').classList.add('open');
   } catch {}
+}
+
+function renderDetailCredentials(c) {
+  const hasPassword = !!(c.admin_password && String(c.admin_password).trim());
+  const adminUrl = API + '/panels/company-admin/';
+  document.getElementById('detail-credentials').innerHTML = `
+    <div class="credentials-card">
+      <h4>🔑 Company Admin Login</h4>
+      <p class="sub-note">Share the building code + admin password with the factory head. You can view or reset the password here if they forget it.</p>
+      <div class="credential-row">
+        <div class="k">Building Code</div>
+        <div class="v-row">
+          <span class="v">${esc(c.company_code)}</span>
+          <div class="credential-actions">
+            <button class="btn btn-secondary btn-sm" onclick="copyText('${esc(c.company_code)}')">Copy</button>
+          </div>
+        </div>
+      </div>
+      <div class="credential-row">
+        <div class="k">Admin Password</div>
+        <div class="v-row">
+          <span class="v ${hasPassword ? '' : 'muted'}" id="detail-admin-password">${hasPassword ? esc(c.admin_password) : 'Not on file — set a new password below'}</span>
+          ${hasPassword ? `<div class="credential-actions"><button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('detail-admin-password').textContent)">Copy</button></div>` : ''}
+        </div>
+      </div>
+      <div class="credential-row">
+        <div class="k">Admin Panel URL</div>
+        <div class="v-row">
+          <span class="v" style="font-size:12px">${esc(adminUrl)}</span>
+          <div class="credential-actions">
+            <button class="btn btn-secondary btn-sm" onclick="copyText('${adminUrl}')">Copy</button>
+          </div>
+        </div>
+      </div>
+      <div class="reset-password-row">
+        <div class="field">
+          <label>Set new admin password</label>
+          <input type="text" id="detail-new-password" placeholder="Enter new password for company admin" autocomplete="new-password">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="resetAdminPassword()">Save New Password</button>
+      </div>
+    </div>`;
+}
+
+async function resetAdminPassword() {
+  const code = currentDetailCompany?.company_code;
+  const admin_password = document.getElementById('detail-new-password')?.value?.trim();
+  if (!code) return;
+  if (!admin_password || admin_password.length < 4) {
+    alert('Enter a new password (at least 4 characters).');
+    return;
+  }
+  if (!confirm(`Set a new admin password for "${currentDetailCompany.name}"?\n\nThe company admin will need to use this new password. Any active admin sessions will be logged out.`)) return;
+  try {
+    const res = await fetch(`${API}/super-admin/companies/${code}/admin-password`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ admin_password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    document.getElementById('detail-new-password').value = '';
+    currentDetailCompany.admin_password = data.company.admin_password;
+    renderDetailCredentials(currentDetailCompany);
+    const t = document.getElementById('toast');
+    t.textContent = 'Admin password updated';
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+  } catch (err) {
+    alert(err.message || 'Failed to update password');
+  }
 }
 
 function showPage(name) {
@@ -1329,7 +1426,7 @@ async function deleteEvacuationPlan() {
 }
 
 function copyHandoff() {
-  const text = `Factory Alert — Client Credentials\n\nBuilding Code: ${lastCreated.code}\nCompany: ${lastCreated.name}\nBuilding: ${lastCreated.building}\nAdmin Panel: ${API}/panels/company-admin/\n\nWorkers: Download Factory Alert app and enter the building code + phone number.`;
+  const text = `Factory Alert — Client Credentials\n\nBuilding Code: ${lastCreated.code}\nCompany: ${lastCreated.name}\nBuilding: ${lastCreated.building}\nAdmin Password: ${lastCreated.password || '(not saved)'}\nAdmin Panel: ${API}/panels/company-admin/\n\nWorkers: Download Factory Alert app and enter the building code + phone number.`;
   copyText(text);
 }
 

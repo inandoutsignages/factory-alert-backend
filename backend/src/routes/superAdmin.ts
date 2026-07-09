@@ -70,6 +70,7 @@ router.post('/companies', authenticate, superAdminOnly, async (req: AuthRequest,
     name,
     company_code,
     admin_password: hashedPassword,
+    admin_password_plain: String(admin_password),
     building_name: building_name || '',
     address: address || '',
     total_floors: total_floors || 1,
@@ -111,12 +112,40 @@ router.get('/companies/:company_code', authenticate, superAdminOnly, async (req:
       ...evacPlanPayload(company),
       is_active: company.is_active,
       created_at: company.created_at,
+      admin_password: company.admin_password_plain || '',
     },
     stats: {
       total_zones: zones.length,
       worker_count: workers.length,
     },
     zones,
+  });
+});
+
+router.patch('/companies/:company_code/admin-password', authenticate, superAdminOnly, async (req: AuthRequest, res: Response) => {
+  const company_code = String(req.params.company_code);
+  const { admin_password } = req.body;
+
+  if (!admin_password || typeof admin_password !== 'string' || admin_password.length < 4) {
+    return res.status(400).json({ error: 'admin_password is required (min 4 characters)' });
+  }
+
+  const existing = await store.findCompanyByCode(company_code);
+  if (!existing) return res.status(404).json({ error: 'Company not found' });
+
+  const hashedPassword = await bcrypt.hash(admin_password, 10);
+  const company = await store.updateCompanyAdminPassword(company_code, hashedPassword, admin_password);
+  if (!company) return res.status(404).json({ error: 'Company not found' });
+
+  destroySessionsForCompany(company_code);
+
+  return res.json({
+    message: 'Admin password updated',
+    company: {
+      company_code: company.company_code,
+      name: company.name,
+      admin_password: company.admin_password_plain,
+    },
   });
 });
 
